@@ -1,0 +1,4 @@
+# PNG / PDF export (kaleido >=1 also needs Chrome: run "plotly_get_chrome" once)
+kaleido
+# interactive UI
+streamlit

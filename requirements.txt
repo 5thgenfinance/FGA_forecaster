@@ -3,3 +3,6 @@ pandas
 openpyxl
 pydantic>=2
 pytest
+plotly
+reportlab
+pyyaml

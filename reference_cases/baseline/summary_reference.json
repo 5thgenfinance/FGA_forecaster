@@ -1,0 +1,19 @@
+{
+ "C1": 2786344.259904229,
+ "C2": 3299355.1793762785,
+ "C3": -513010.91947204946,
+ "F2": 1197000,
+ "F3": 224151.4181624186,
+ "funding_ratio": 0.8445117631836683,
+ "focus_year": 2040,
+ "focus_assets": 5007556.577335188,
+ "focus_cash_flow": -35239.12778669034,
+ "first_positive_cash_flow_year": 2035,
+ "peak_assets": 10784289.975810062,
+ "peak_asset_year": 2066,
+ "lowest_assets": 2579361.8235218083,
+ "focus_age": 72,
+ "focus_expenses": 224366.75917979385,
+ "focus_social_security": 120013.70925203856,
+ "focus_investment_income": 23780.977490767113
+}

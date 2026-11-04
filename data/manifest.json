@@ -1,0 +1,44 @@
+{
+ "tblInflation": {
+  "sheet": "Inflation",
+  "ref": "A5:G69",
+  "rows": 64,
+  "nulls": 0
+ },
+ "tblLURMD": {
+  "sheet": "StaticParms",
+  "ref": "A3:B52",
+  "rows": 49,
+  "nulls": 0
+ },
+ "tblTax": {
+  "sheet": "StaticParms",
+  "ref": "J2:L8",
+  "rows": 6,
+  "nulls": 0
+ },
+ "tblLTGCtax": {
+  "sheet": "StaticParms",
+  "ref": "N2:R5",
+  "rows": 3,
+  "nulls": 0
+ },
+ "tblMortality": {
+  "sheet": "Mortality",
+  "ref": "A4:I125",
+  "rows": 121,
+  "nulls": 252
+ },
+ "tblDiscountRates": {
+  "sheet": "Discounting",
+  "ref": "A3:H67",
+  "rows": 64,
+  "nulls": 0
+ },
+ "TreasuryCurve": {
+  "sheet": "Calc",
+  "ref": "A1:D9",
+  "rows": 8,
+  "nulls": 0
+ }
+}
