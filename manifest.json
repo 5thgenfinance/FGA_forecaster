@@ -1,0 +1,19 @@
+{
+ "source": "FGA_Client_Onboarding_Calculator.xlsx",
+ "sha256_16": {
+  "TreasuryCurve.csv": "76b56e7a96e3bc1a",
+  "tblDiscountRates.csv": "5a01604efc30c350",
+  "tblInflation.csv": "042ab9f732fa4f5e",
+  "tblLTGCtax.csv": "bc41099a8ab291f4",
+  "tblLURMD.csv": "1fa474908b8a12cc",
+  "tblMortality.csv": "c3e58ad12a5bf551",
+  "tblTax.csv": "6480e12fbefd58a9"
+ },
+ "cached_reference": {
+  "C1": 2786344.259904229,
+  "C2": 3299355.1793762785,
+  "C3": -513010.91947204946,
+  "F2": 1197000,
+  "F3": 224151.4181624186
+ }
+}
