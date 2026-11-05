@@ -6,3 +6,5 @@ pytest
 plotly
 reportlab
 pyyaml
+streamlit
+pillow
