@@ -1,0 +1,21 @@
+{
+  "firm_name": "Fifth Generation Advisers",
+  "tagline": "Registered Investment Adviser",
+  "established": 2026,
+  "colors": {
+    "navy": "#1a2744",
+    "bronze": "#c49a4a",
+    "offwhite": "#f7f4ef",
+    "charcoal": "#2c2c2c"
+  },
+  "fonts": {
+    "heading": "Playfair Display",
+    "body": "Source Sans 3"
+  },
+  "logos": {
+    "shield_light": "assets/brand/shield_cream.jpg",
+    "shield_dark": "assets/brand/shield_navy.jpg",
+    "ribbon_light": "assets/brand/ribbon_cream.jpg",
+    "ribbon_dark": "assets/brand/ribbon_navy.jpg"
+  }
+}

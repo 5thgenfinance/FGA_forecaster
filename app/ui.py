@@ -15,7 +15,20 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 import pandas as pd
 import streamlit as st
 
-from app.ui_helpers import HELP, INPUT_GROUPS, LABELS, PCT_FIELDS, choices, field_kind, form_to_inputs, to_form_values
+from PIL import Image
+
+from app.branding_ui import apply_branding
+from app.client_details import CLIENT_FIELDS, SIDEBAR_GROUPS, apply_pending_import, client_page, widget
+from app.header import render_footer, render_header, render_title
+from app.header_html import PRODUCT, favicon_path
+from app.mortality_options import mortality_options
+from app.scenario import describe as scenario_describe, warnings as scenario_warnings
+from app.scenario_ui import render_scenario
+from app.shell import current_view, settings_page
+from app.sidebar_theme import apply_sidebar_theme
+from app.ui_helpers import LABELS, form_to_inputs, to_form_values
+from model import branding as B
+from model import table_store as TS
 from model.dashboard import Brand, build_figures, build_report_data, fmt_money, fmt_pct
 from model.engine import ModelTables
 from model.inputs import ProjectionInputs
@@ -23,65 +36,92 @@ from model.loop import ForwardTables
 from model.parity import COLUMN_GROUPS
 from model.report import build_html, scenario_table
 
-DATA_DIR = Path(__file__).resolve().parents[1] / "data"
+def data_dir() -> str:
+    return str(TS.effective_dir())
+
+def _stamp(d: str) -> float:
+    fs = list(Path(d).glob("*.csv"))
+    return max((f.stat().st_mtime for f in fs), default=0.0)
 
 @st.cache_resource
-def load_tables(data_dir: str):
-    return ModelTables.from_csv_dir(data_dir), ForwardTables.from_csv_dir(data_dir)
+def _load_tables(data_dir_: str, stamp: float):
+    return ModelTables.from_csv_dir(data_dir_), ForwardTables.from_csv_dir(data_dir_)
+
+def load_tables():
+    d = data_dir()
+    return _load_tables(d, _stamp(d))
 
 @st.cache_data(show_spinner="Running projection...")
-def run_cached(inputs_json: str, as_of: str, scenarios: bool):
-    tables, ft = load_tables(str(DATA_DIR))
+def run_cached(inputs_json: str, as_of: str, scenarios: bool, tables_stamp: float):
+    tables, ft = load_tables()
     inputs = ProjectionInputs(**json.loads(inputs_json))
     d = date.fromisoformat(as_of)
     rd = build_report_data(inputs, tables, ft, d)
     scen = scenario_table(inputs, tables, ft, d) if scenarios else None
     return rd, scen
 
-def widget(name: str, default, key: str):
-    label, kind, help_ = LABELS.get(name, name), field_kind(name), HELP.get(name)
-    if kind == "bool":
-        return st.checkbox(label, value=bool(default), key=key, help=help_)
-    if kind == "date":
-        return st.date_input(label, value=default or date(1970, 1, 1), min_value=date(1900, 1, 1), max_value=date(2100, 12, 31), key=key, help=help_)
-    if kind == "int":
-        return st.number_input(label, value=int(default), step=1, key=key, help=help_)
-    if kind == "float":
-        step = 0.1 if name in PCT_FIELDS else 1000.0
-        return st.number_input(label, value=float(default), step=step, key=key, help=help_)
-    if kind == "choice":
-        opts = choices(name)
-        return st.selectbox(label, opts, index=opts.index(default) if default in opts else 0, key=key, help=help_)
-    return st.text_input(label, value=str(default), key=key, help=help_)
-
 def main():
-    st.set_page_config(page_title="Retirement Forecast", layout="wide")
-    tables, _ = load_tables(str(DATA_DIR))
+    st.set_page_config(page_title=PRODUCT, page_icon=Image.open(favicon_path()), layout="wide")
+    apply_branding(sidebar_logo=False)
+    apply_sidebar_theme()
+    tables, _ = load_tables()
     defaults = to_form_values(ProjectionInputs())
+    store = st.session_state.setdefault("form", {f: defaults[f] for f in CLIENT_FIELDS})
+    apply_pending_import(store)
+
+    st.sidebar.image(str(B.logo_path("ribbon", dark_surface=True)), use_container_width=True)
     st.sidebar.title("Inputs")
-    as_of = st.sidebar.date_input("Valuation date", value=date.today())
-    values, slots = {}, {}
-    for group, fields in INPUT_GROUPS.items():
-        with st.sidebar.expander(group, expanded=group == "Personal"):
+    as_of = st.sidebar.date_input("Valuation date", value=date.today(), key="as_of")
+    scen_box = st.sidebar.container()
+    side, slots = {}, {}
+    for group, fields in SIDEBAR_GROUPS.items():
+        with st.sidebar.expander(group, expanded=group == "Mortality"):
             for f in fields:
-                if f in ("s_dob", "t_s_ret_date") and not values.get("include_spouse", True):
-                    continue
                 if f in ("InflationScenario", "COLAScenario"):
                     cols = [c for c in tables.inflation_table.columns if c != "ForecastYr"]
-                    values[f] = st.selectbox(LABELS[f], cols, index=cols.index(defaults[f]) if defaults[f] in cols else 0, key=f)
+                    side[f] = st.selectbox(LABELS[f], cols, index=cols.index(defaults[f]) if defaults[f] in cols else 0, key=f)
+                elif f == "mort_table":
+                    opts = mortality_options(data_dir(), st.session_state.get("mort_table"))
+                    side[f] = st.selectbox(LABELS[f], opts, index=opts.index(defaults[f]) if defaults[f] in opts else 0, key=f)
                 else:
-                    values[f] = widget(f, defaults[f], f)
+                    side[f] = widget(f, defaults[f], f)
                 slots[f] = st.empty()
-    inputs, errors = form_to_inputs(values)
+
+    render_header()
+    view = current_view()
+    if view == "settings": settings_page(); render_footer(); st.stop()
+    if view == "client": client_page(store, side, as_of); render_footer(); st.stop()
+
+    inputs, errors = form_to_inputs({**side, **store})
     for f, msg in errors.items():
         (slots.get(f) or st.sidebar).error(f"{LABELS.get(f, f)}: {msg}")
     if inputs is None:
-        st.error("Fix the highlighted inputs to run the projection.")
+        st.error("Fix the highlighted inputs (open Client details with the head icon) to run the projection.")
         st.stop()
 
-    rd, scen = run_cached(inputs.model_dump_json(), as_of.isoformat(), True)
+    with scen_box:
+        base_inputs = inputs
+        inputs, overrides, scen_errs = render_scenario(base_inputs, as_of)
+    if inputs is None:
+        for e in scen_errs:
+            st.error(f"Scenario: {e}")
+        st.stop()
+
+    try:
+        rd, scen = run_cached(inputs.model_dump_json(), as_of.isoformat(), True, _stamp(data_dir()))
+    except KeyError as e:
+        st.error(f"The model could not run with these inputs: {e}")
+        st.stop()
     k = rd.kpis
-    st.title("Retirement Forecast")
+    render_title(st.session_state.get("client_name", ""), as_of)
+    if overrides:
+        st.info("Scenario active: " + "; ".join(scenario_describe(base_inputs, overrides)) + ". Client inputs are unchanged.")
+    for w in scenario_warnings(inputs, as_of):
+        st.warning(w)
+    if TS.is_customised():
+        st.warning("Using edited model tables (data_user/). Results will not match the Excel reference.")
+
+    #st.title("Retirement Forecast")#
     c = st.columns(5)
     c[0].metric("Funding ratio", fmt_pct(k["funding_ratio"]))
     c[1].metric("Surplus / (shortfall)", fmt_money(k["surplus"]))
@@ -121,7 +161,7 @@ def main():
     d2.download_button("Download XLSX", buf.getvalue(), "projection.xlsx",
                        "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
     d3.download_button("Download HTML report", build_html(rd, figs, Brand()), "report.html", "text/html")
-    st.caption("Hypothetical illustration based on stated assumptions; not a guarantee of future results.")
+    render_footer()
 
 if __name__ == "__main__":
     main()
