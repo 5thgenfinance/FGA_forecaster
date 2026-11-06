@@ -97,6 +97,7 @@ def client_page(store: dict, sidebar_values: dict, valuation_date: date) -> None
                 c1.warning("Fix the highlighted inputs before exporting.")
         with c2:
             n = st.session_state.setdefault("upload_n", 0)
+            c2.caption("Drag a client .json file onto the box below, or click Browse.")
             up = c2.file_uploader("Import client file (JSON)", type=["json"], key=f"cd_upload_{n}")
             if up is not None:
                 res = client_io.parse_import(up.getvalue())

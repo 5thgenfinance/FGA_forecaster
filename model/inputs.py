@@ -21,14 +21,14 @@ class ProjectionInputs(BaseModel):
     # income / expenses
     salary: float = Field(110_000, ge=0)
     sup_salary: float = Field(0, ge=0)
-    inc_tax_status: str = "PRE"
+    inc_tax_status: Literal["PRE", "POST"] = "PRE"
     spread_emprisk: float = 0.015
     net_income: float = Field(0, ge=0)
     net_expenses: float = Field(5_000, ge=0)
     cash_cushion: float = 5
     cash_cushion_amt: float = Field(25_000, ge=0)
     InflationScenario: str = "CPI70"
-    InflationLoad: float = 0.025
+    InflationLoad: float = 0.0125
     COLAScenario: str = "COLA70"
     # accounts
     pre_401k: float = Field(47_000, ge=0)

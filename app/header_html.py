@@ -56,7 +56,7 @@ def footer_html() -> str:
 _CSS = Template("""
 /* Style-only helper blocks (branding, theme, header CSS) must not take up a gap in the page flow */
 [data-testid="stElementContainer"]:has(style) { display:none !important; }
-
+[data-testid="stFileUploaderDropzone"] { border:2px dashed $bronze; background:#ffffff; min-height:90px; }
 header[data-testid="stHeader"] { background:$navy !important; }
 header[data-testid="stHeader"] *, [data-testid="stToolbar"] * { color:#ffffff !important; }
 header[data-testid="stHeader"] svg { fill:#ffffff !important; }
