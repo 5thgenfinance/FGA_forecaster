@@ -33,9 +33,7 @@ LABELS = {
     "InflationScenario": "Inflation scenario", "COLAScenario": "COLA scenario",
 }
 PCT_FIELDS = {"spread_emprisk", "mort_rate", "sleeve3_ror", "sup_inc_irr", "hurdle_rate", "LTRoR", "growth_rt_401k", "contrib_rt_401k", "InflationLoad"}
-HELP = {"SSI_PIA": "Not adjusted for election age: change it when you change the election age.",
-        "hurdle_rate": "Drives asset-side discounting only; the spending liability uses the Treasury curve.",
-        "include_spouse": "Untick for a single-person plan."}
+from app.help_text import HELP
 
 def field_kind(name: str) -> str:
     """'bool' | 'date' | 'int' | 'float' | 'choice' | 'text' for a ProjectionInputs field."""
