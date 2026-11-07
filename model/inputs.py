@@ -28,7 +28,7 @@ class ProjectionInputs(BaseModel):
     cash_cushion: float = 5
     cash_cushion_amt: float = Field(25_000, ge=0)
     InflationScenario: str = "CPI70"
-    InflationLoad: float = 0.0125
+    InflationLoad: float = 0.025
     COLAScenario: str = "COLA70"
     # accounts
     pre_401k: float = Field(47_000, ge=0)
