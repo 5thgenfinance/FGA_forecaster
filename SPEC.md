@@ -1,13 +1,21 @@
-# Retirement Model, Illustration and Forecasting Tool — Python Application Specification — Version 1.0
-Generated from the workbook on 2026-11-03. Lines marked LIVE update from Excel.
+# Retirement Model, Illustration and Forecasting Tool — Python Application Specification — Version 1.1
+Generated from the workbook on 2026-11-03. Lines marked LIVE update from Excel. Version 1.1 amended 2026-11-07: sections 14 and the items marked [v1.1] are maintained by hand and are NOT regenerated from the workbook.
+
+## Revision history
+| Version | Date | Summary |
+|---|---|---|
+| 1.0 | 2026-11-03 | Original specification generated from the workbook (sections 0 to 13). |
+| 1.1 | 2026-11-07 | Application-layer amendments made while building and testing the app: product branding and sticky header; Client details page with JSON save/load and tooltips; Income tax status as a PRE/POST choice; mortality-table handling (RP-2014 and the single-column IAM2012 convention, IAM2012 withheld from the dropdown); new Disposable income scenario slider; deployment and access notes; new known issues #15 to #17; updated acceptance-test notes. Calculation logic in sections 5, 8 and 9 is unchanged. |
+
+Rules for this document: workbook-driven sections (3, 4, 8, 9, 10, 11) are regenerated from the workbook; the amendments marked [v1.1] and section 14 are not, and must be carried forward by hand when the sheet is regenerated.
 
 ## 0. Prompt for the AI coding assistant
 You are a senior Python engineer with a strong understanding of pension actuarial science, retirement-income modeling, actuarial present values, mortality and survivorship, discounting, taxation, and retirement forecasting. Build version 1.0 of the application described below. Implement data loading and validation, helper functions, the year-by-year projection engine, dashboard outputs, CLI, optional Streamlit UI, and pytest tests. Preserve actuarial logic and terminology. Do not invent business rules: list ambiguities and propose defaults. Return a complete source tree, requirements.txt, README, sample input file, and test report.
 
-## 1. Purpose and objective — Version 1.0
-Version 1.0 is a retirement model, illustration and forecasting tool. It is designed to illustrate and forecast retirement funding outcomes for a primary person and optional spouse using pension actuarial concepts, including mortality and survivorship, actuarial present values, discounting, income commencement, taxes, required minimum distributions, contributions, and asset-depletion waterfalls.
+## 1. Purpose and objective — Version 1.1
+Version 1.1 (which extends version 1.0 without changing its calculations) is a retirement model, illustration and forecasting tool. It is designed to illustrate and forecast retirement funding outcomes for a primary person and optional spouse using pension actuarial concepts, including mortality and survivorship, actuarial present values, discounting, income commencement, taxes, required minimum distributions, contributions, and asset-depletion waterfalls.
 The application projects retirement outcomes year by year, values expenses as a present-value liability, values Social Security, salary, investment income and account balances as assets, and reports funding status, surplus, cash flow, account balances and dashboard metrics. Results are illustrations and forecasts based on the selected assumptions; they are not guarantees.
-The Excel workbook is the source of truth for version 1.0. Python must reproduce its formulas, actuarial conventions and outputs within the tolerances in section 11.
+The Excel workbook is the source of truth for the calculations. Python must reproduce its formulas, actuarial conventions and outputs within the tolerances in section 11. [v1.1] The application layer (branding, Client details page, scenario sliders, deployment) has no workbook equivalent and is specified in section 14.
 
 ## 2. Technical requirements
 * Python 3.11+; numpy, pandas, pydantic or dataclasses, pytest; Plotly or matplotlib; optional Streamlit.
@@ -39,17 +47,17 @@ Every row below is an editable and validated input in JSON/YAML, CLI, and UI. Da
 | Secondary Target Ret Dt | Main!B10 | t_s_ret_date | 49031 |
 | Primary Gender | Main!B12 | p_gender | M |
 | Disabled | Main!B13 | disabled | FALSE |
-| Mortality | Main!B14 | mort_table | RP-2014 |
+| Mortality | Main!B14 | mort_table | RP-2014 (choice list; see 5.3 and 14.4) [v1.1] |
 | Main Salary | Main!B17 | salary | 110000 |
 | Sup Income | Main!B18 | sup_salary | 0 |
-| Income Tax Status | Main!B19 | inc_tax_status | PRE |
+| Income Tax Status | Main!B19 | inc_tax_status | PRE (choice of PRE or POST) [v1.1] |
 | Employment Risk Spread | Main!B20 | spread_emprisk | 0.015 |
 | Post Retirement Income | Main!B21 | net_income | 0 |
 | Net Expenses | Main!B22 | net_expenses | 5000 |
 | Cash Cushion | Main!B23 | cash_cushion | 5 |
 | Cash Cushion Amt | Main!B24 | cash_cushion_amt | 25000 |
 | Inflation Scenario | Main!B25 | InflationScenario | CPI70 |
-| Inflation Load | Main!B26 | InflationLoad | 0.025 |
+| Inflation Load | Main!B26 | InflationLoad | 0.025 (see known issue #15) |
 | COLA | Main!B27 | COLAScenario | COLA70 |
 | Pre 401k | Main!B30 | pre_401k | 47000 |
 | Prim Trad IRA | Main!B32 | pre_IRA | 300000 |
@@ -70,6 +78,12 @@ Every row below is an editable and validated input in JSON/YAML, CLI, and UI. Da
 | Long Term Asset RoR | Main!B65 | LTRoR | 0.125 |
 | 401k Growth Rate MM | Main!B66 | growth_rt_401k | 0.035 |
 | 401k Contribution Rate | Main!B67 | contrib_rt_401k | 0.14 |
+
+[v1.1] Input-model notes:
+* inc_tax_status is validated as a choice: "PRE" or "POST". Any other value is rejected, including on import of a saved client file.
+* The model also holds inputs that are not listed in the table above because their defaults are zero or blank in the workbook: post_401k, s_pre_IRA, life_ins, other_PMs. They are editable in the UI and part of the JSON client file. life_ins is added to brokerage in BM5.
+* client_name is metadata stored in the client file and shown in the dashboard heading. It is not a model input and does not affect any calculation.
+* The model rejects unknown fields (extra fields forbidden) when a client file is loaded.
 
 Derived and fixed rules:
 * joint = spouse DOB is not blank. retired = RETIRED when retirement date is today/past, otherwise PRERET.
@@ -128,6 +142,7 @@ The workbook currently has identical Single/MFJ thresholds in the 15% and 20% LT
 * Phase C — backward PV calculations: AJ, AK, AQ, AR, BT, CC, CQ, CR, dashboard feed CW:DJ, and summary C1:C3/F2:F3.
 * Important dependency: AI uses prior-row BK, so AK depends on the complete forward path.
 ### 5.3 Mortality
+* [v1.1] Column naming is centralised in one helper, _cols(prefix, sex, phase), returning (pre-retirement column, post-retirement column). For tables whose prefix starts with RP it returns <prefix><sex>E and <prefix><sex><phase> (phase H healthy or D disabled), exactly as PROJECTMORTALITY_RP. For other tables (IAM2012) the table has one column per sex, <prefix>M or <prefix>F, and the same column is used before and after retirement; the disabled flag has no effect. Spaces in a prefix are ignored so older client files still load. Output for RP-2014 must remain identical to the workbook.
 * PROJECTMORTALITY_RP creates primary and spouse survival curves and combines them with FRASIER: last survivor = px+py-px*py; joint = px*py.
 * ASOFDATE is today when retired, otherwise retirement date. Use AGENEAREST. Primary transitions from employee to healthy/disabled qx; spouse effectively uses healthy after the first index.
 * px=1-qx through table maximum and 0 beyond; survival is cumulative product, starting at 1.
@@ -144,6 +159,8 @@ The workbook currently has identical Single/MFJ thresholds in the 15% and 20% LT
 * CLI example: python -m app.cli run --inputs inputs.json --as-of 2026-11-03 --out results/
 * Write projection.csv, summary.json, and chart images. UI groups inputs into personal, income, expenses, accounts, mortgage, SSI, Sleeve 3, rates, and scenarios.
 * UI includes focus-year selector, KPI cards, charts, projection table with column-group filters, and CSV/XLSX downloads. Show validation errors beside fields; never fail silently.
+
+* [v1.1] The user interface is further specified in section 14 (branding and header, Client details page, tooltips, scenario sliders, mortality-table list). Where section 14 and the bullets above differ, section 14 applies.
 
 ## 8. Projection dictionary — LIVE from Model Spec
 Translate the listed Excel formulas into Python in the phase order above. A blank year-2 formula means the year-1 formula spills as a dynamic array.
@@ -445,11 +462,16 @@ For open/partly resolved items, match the current Excel formulas for parity, iso
 * #12 Main: [Partly resolved] Formula errors — Partly resolved: the Main!M7:N7 and M12:N12 #N/A errors are cleared (now returning fees and fee %), and Main!A63 and Calc!B2:B9 now display the Treasury names (linked data type cells). Still open: Calc!G2:G65 shows #VALUE! because each cell calls TREASURYDISC with a single argument (=TREASURYDISC(F2)) instead of t, yrs, rates.
 * #13 Main!B64: [Design decision] discount_rate stores a factor — Accepted design decision: discount_rate (Main!B64, = 1/(1+hurdle_rate) = 0.952) intentionally stores a discount factor, applied as discount_rate^year in Projection!J. The name is kept as is; no action required.
 * #14 Projection: [Resolved] Hard-coded year-1 SSI flag — Resolved: the V2 flag has been removed (Projection!V2 is now blank).
+* #15 InflationLoad default: [Open] Section 3 and the model default are 0.025, but the repository parity fixtures expect 0.0125, which makes inputs read from the workbook differ from the model defaults and shifts every phase 2 to 6 parity test (for example the headline reserve). Decide the authoritative value, then align the model default, the workbook and the regenerated fixtures. [v1.1]
+* #16 IAM2012 mortality: [Partly resolved] The column helper exists and handles single-column tables, but project_mortality_rp must still be changed to call it before IAM2012 can be offered. IAM2012 is therefore withheld from the dropdown. [v1.1]
+* #17 Acceptance values and fixtures: [Open] Section 11 values are dated 2026-11-06; fixtures used by the repository tests come from an earlier export. Regenerate both from one workbook state and one as_of_date before using them as release gates. The report test that expects the placeholder firm name "Acme Advisors" must be updated to the branded name. [v1.1]
 
 ## 11. Acceptance tests — LIVE workbook reference values
 Reference as-of date: 2026-11-06
 Run Python with that as_of_date and the defaults in section 3. Tolerance: relative 1e-6 and absolute 0.01 for currency. Re-export this section if the date or workbook inputs change.
 ### 11.1 Summary
+[v1.1] Parity with these values depends on known issues #15 and #17 being resolved.
+
 * Projection!C1 Act Assets = 2806864.9333032
 * Projection!C2 Act Liabilities = 3348499.44395255
 * Projection!C3 Surplus = -541634.51064935
@@ -476,6 +498,7 @@ Run Python with that as_of_date and the defaults in section 3. Tolerance: relati
 * Add unit tests for AGENEAREST, WORKINCUR, MTGBALEOY, ROTH_LIMIT, IRAFILL, PRETAXDRAW, FRASIER and FORECASTSSI, including edge cases documented in their definitions.
 
 ## 12. Deliverables and definition of done
+* [v1.1] Additional tests for the application layer: header and title HTML (product name, empty-name prompt, sticky CSS, asset lookup), mortality options and column helper, scenario overrides including the Disposable income slider, and the tooltip dictionary (every input has a tooltip).
 * Complete source tree, requirements.txt, README, sample input JSON/YAML, data CSVs, and a repeatable workbook-export script.
 * pytest coverage for every helper function and all section 11 values; all tests pass.
 * Comparison script reading cached workbook values and reporting max absolute/relative difference for every Projection column.
@@ -483,8 +506,54 @@ Run Python with that as_of_date and the defaults in section 3. Tolerance: relati
 * CLI and Streamlit outputs include downloadable projection CSV/XLSX, summary JSON, and both dashboard charts.
 
 ## 13. Export and maintenance notes
+* [v1.1] Section 14 and the items marked [v1.1] are not produced by the workbook export. Copy them forward when regenerating this document.
 * Preferred handoff: upload this .xlsx workbook to Perplexity and point it to the Python App Spec sheet. Alternatively, copy column A into a UTF-8 .md or .txt file.
 * Avoid CSV export for this document because cells containing quotes may be doubled or wrapped.
 * Live references depend on TODAY(). Model Spec row references are fixed; regenerate this sheet if rows are inserted/deleted in Model Spec.
 * Outstanding/partly resolved areas remain documented in section 10, including the current Calc!G2:G65 TREASURYDISC one-argument errors.
 * The FORECAST.LINEAR regression-versus-interpolation distinction is mandatory and called out in section 2.1.
+
+## 14. Application layer amendments — version 1.1
+These requirements describe the Streamlit application built on the engine. They do not change any calculation.
+
+### 14.1 Product identity and branding
+* Product name: "Fifth Generation Retirement Illustrator". Firm line: "Fifth Generation Advisers · Registered Investment Adviser".
+* Palette: navy #1a2744, bronze #c49a4a, off-white #f7f4ef, charcoal #2c2c2c. Typefaces: Playfair Display for headings, Source Sans 3 for body text. Bronze is an accent only (rules, borders, icon highlights).
+* Browser tab: page title is the product name; icon is the navy shield (assets/brand/favicon.png).
+* Logo files are looked up in assets/brand/ as .svg, then .png, then .jpg. Names: shield_navy, shield_cream, ribbon_navy.
+* Header: a navy band running edge to edge, compact, with a 3 px bronze rule below. It holds the shield, the product name, the tagline "Registered Investment Adviser", and the Client details (head icon) and Settings (gear) buttons. It stays fixed below the application top bar while the page scrolls, with an off-white strip beneath it so content cannot show through.
+* Title block: a "Prepared for" label above the client name, then the valuation date. When the client name is empty the heading shows the muted placeholder "Add a client name" and no label. Heading anchor icons are hidden.
+* Footer on every view: cream shield, the disclosure "Hypothetical illustration based on stated assumptions; not a guarantee of future results.", and the firm line.
+* Style-only helper blocks must not add vertical gaps to the page.
+
+### 14.2 Client details page
+* Groups: Personal, Income, Expenses, Accounts, Mortgage (client fields). Mortality table, Social Security, Sleeve 3, Rates and Scenarios inputs stay in the sidebar. Client name sits at the top of the page.
+* Widgets on this page are keyed cd_<field>. Applying an imported file must, before any widget is drawn, set: the stored client values, the sidebar widget keys, every cd_<field> key, and cd_client_name. Otherwise the widgets' remembered values overwrite the import.
+* Client file (JSON): top-level keys are schema, client_name, valuation date and inputs. The default file name is client_inputs.json when no client name is set. Percent fields are stored as fractions and shown as percents.
+* Import: the file may be selected or dragged onto the upload box. It is validated and its contents (including the client name) are shown; nothing changes until "Apply imported file" is clicked. Validation errors are shown next to the upload; unknown fields and out-of-range values are rejected.
+* If the model cannot run (for example a missing mortality column) the page shows a plain error message and stops; it must not crash.
+* Tooltips: every input has an explanatory tooltip (the ? icon), stored in one dictionary. Percent fields add "Enter as a percent, e.g. 3.5 for 3.5%." The wording for Sleeve 3, employment risk spread, inflation load, cash cushion, supplemental salary and post-retirement income is provisional and requires advisor review.
+
+### 14.3 Scenario sliders (what-if)
+Sliders never change the client's saved inputs; they apply a temporary copy for the run, and a banner states what is overridden. "Reset sliders" restores all of them.
+| Slider | Range | Step | Default | Effect |
+|---|---|---|---|---|
+| Primary retirement | -60 to +60 months | 1 | 0 | Shifts t_ret_date |
+| Spouse retirement (joint only) | -60 to +60 months | 1 | 0 | Shifts t_s_ret_date |
+| Advisor rate of return | 0% to 15% (widened to include the client's own rate) | 0.25% | client LTRoR | Overrides LTRoR; asset side only |
+| Disposable income [v1.1] | -5% to +25% | 0.5% | 0% | net_expenses x (1 + value) |
+Disposable income scales only net_expenses; cash cushion and mortgage payments are unchanged. A positive value means more spending and therefore less cash left over. The slider shows the resulting net expenses beside the client's figure, and the scenario banner reads, for example, "disposable income +10.0% (net expenses $5,500 vs client $5,000)". It combines with the other sliders.
+
+### 14.4 Mortality table list
+* The dropdown lists tables found in tblMortality (matched on column prefix, ignoring case and punctuation) from this candidate list: RP-2014 and, when enabled, IAM2012. A value imported from a client file stays selectable so nothing crashes.
+* IAM2012 is currently withheld (see known issue #16). If an unavailable table is chosen, the application warns and uses RP-2014.
+* tblMortality columns: Age, IAM2012M, IAM2012F, RP-2014ME, RP-2014FE, RP-2014MH, RP-2014FH, RP-2014MD, RP-2014FD. See 5.3 for how columns are chosen.
+
+### 14.5 Deployment and access (planned, not part of acceptance)
+* Target host: Streamlit Community Cloud from a GitHub repository. Required: requirements.txt at the repository root, the data CSVs and brand assets committed, .streamlit/config.toml at the root, and the working directory taken to be the repository root. No real client files or secrets may be committed; the repository and app should be private.
+* Edited tables saved to data_user/ do not persist on that host.
+* Access control options under review: Streamlit native login (OpenID Connect) combined with either a Stripe subscription check (st-paywall) or an allow-list of paid-member emails exported from Substack (a manual snapshot refreshed on a schedule; Substack provides no official subscriber-verification API). Compliance review is required before the tool is offered outside the firm.
+
+### 14.6 Test notes
+* Expected updates: the mortality-options tests expect only RP-2014 while IAM2012 is withheld; the dashboard report test must expect the branded firm name rather than "Acme Advisors".
+* The workbook parity tests are blocked by known issues #15 and #17.
