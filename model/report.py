@@ -42,19 +42,19 @@ def _e(x) -> str:
 
 def assumptions_table(rd: ReportData, inflation_id: str, curve_id: str) -> list[tuple[str, str]]:
     i, k = rd.inputs, rd.kpis
-    annual_spend = time_factor(i.t_expenses) * i.net_expenses
+    annual_spend = time_factor(i.expenses_freq) * i.net_expenses
     rows = [
         ("Valuation date", rd.as_of.isoformat()),
-        ("Planned retirement", f"{i.t_ret_date.year} (age {k['retirement_age']})"),
-        ("Social Security start", f"age {i.SSI_ret_age}; estimated benefit {fmt_money(i.SSI_PIA * time_factor(i.t_SSI_PIA), False)} per year in today's dollars"),
+        ("Planned retirement", f"{i.primary_target_ret_date.year} (age {k['retirement_age']})"),
+        ("Social Security start", f"age {i.ssi_claim_age}; estimated benefit {fmt_money(i.ssi_pia * time_factor(i.ssi_pia_freq), False)} per year in today's dollars"),
         ("Household", "Two people" if i.joint else "One person"),
         ("Planned spending today", f"{fmt_money(annual_spend, False)} per year, plus mortgage payments"),
-        ("Inflation assumption", f"{inflation_id} plus {fmt_pct(i.InflationLoad, 1)}"),
-        ("Return on long-term assets", fmt_pct(i.LTRoR, 1)),
-        ("Return on 401(k) / cash", fmt_pct(i.growth_rt_401k, 1)),
-        ("Sleeve 3 income / growth", f"{fmt_pct(i.sleeve3_ror, 1)} / {fmt_pct(i.sup_inc_irr, 1)}"),
-        ("Discounting", f"{curve_id}; employment spread {fmt_pct(i.spread_emprisk, 1)}"),
-        ("Mortality table", i.mort_table),
+        ("Inflation assumption", f"{inflation_id} plus {fmt_pct(i.inflation_load, 1)}"),
+        ("Return on long-term assets", fmt_pct(i.lt_return_rate, 1)),
+        ("Return on 401(k) / cash", fmt_pct(i.growth_rate_401k, 1)),
+        ("Sleeve 3 income / growth", f"{fmt_pct(i.sleeve3_income_rate, 1)} / {fmt_pct(i.sleeve3_growth_rate, 1)}"),
+        ("Discounting", f"{curve_id}; employment spread {fmt_pct(i.employment_risk_spread, 1)}"),
+        ("Mortality table", i.mortality_table),
         ("Taxes", "Estimated federal income tax; standard deduction; brackets indexed to Social Security COLA"),
     ]
     return rows
@@ -182,16 +182,16 @@ def scenario_table(inputs: ProjectionInputs, tables: ModelTables, ft: ForwardTab
     def changed(**kw):
         return ProjectionInputs(**{**inputs.model_dump(), **kw})
     rows = [("Current plan", ratio())]
-    ret = inputs.t_ret_date
+    ret = inputs.primary_target_ret_date
     def shift_year(d, n):
         try: return d.replace(year=d.year + n)
         except ValueError: return d.replace(year=d.year + n, day=28)
-    rows.append(("Retire 2 years later", ratio(changed(t_ret_date=shift_year(ret, 2)))))
-    if shift_year(ret, -1) > date(inputs.cur_year, 1, 1):
-        rows.append(("Retire 1 year earlier", ratio(changed(t_ret_date=shift_year(ret, -1)))))
+    rows.append(("Retire 2 years later", ratio(changed(primary_target_ret_date=shift_year(ret, 2)))))
+    if shift_year(ret, -1) > date(inputs.first_proj_year, 1, 1):
+        rows.append(("Retire 1 year earlier", ratio(changed(primary_target_ret_date=shift_year(ret, -1)))))
     rows.append(("Spend 10% less", ratio(changed(net_expenses=inputs.net_expenses * 0.9))))
     rows.append(("Spend 10% more", ratio(changed(net_expenses=inputs.net_expenses * 1.1))))
-    rows.append(("Inflation 1 point higher", ratio(changed(InflationLoad=inputs.InflationLoad + 0.01))))
+    rows.append(("Inflation 1 point higher", ratio(changed(inflation_load=inputs.inflation_load + 0.01))))
     rows.append(("Interest rates 1 point higher", ratio(curve=tables.legacy_curve().with_spread(0.01))))
     rows.append(("Interest rates 1 point lower", ratio(curve=tables.legacy_curve().with_spread(-0.01))))
     return pd.DataFrame(rows, columns=["label", "funding_ratio"])

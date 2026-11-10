@@ -11,12 +11,12 @@ from datetime import date, datetime
 from pathlib import Path
 import pandas as pd
 
-SPECIAL_CELLS = {"sleeve3_deployed": ("Main", "B55")}     # no defined name in the workbook
-DATE_FIELDS = {"p_dob", "s_dob", "t_ret_date", "t_s_ret_date"}
-OPTIONAL_DATE_FIELDS = {"s_dob", "t_s_ret_date"}
-STRING_FIELDS = {"retired", "p_gender", "mort_table", "inc_tax_status", "InflationScenario", "COLAScenario",
-                 "t_expenses", "t_salary", "t_income", "t_sup_salary", "t_sup_income", "t_SSI_PIA", "t_cashcush"}
-BOOL_FIELDS = {"disabled"}
+SPECIAL_CELLS = {"sleeve3_balance": ("Main", "B55")}     # no defined name in the workbook
+DATE_FIELDS = {"primary_dob", "spouse_dob", "primary_target_ret_date", "spouse_target_ret_date"}
+OPTIONAL_DATE_FIELDS = {"spouse_dob", "spouse_target_ret_date"}
+STRING_FIELDS = {"ret_status", "p_gender", "mortality_table", "income_tax_status", "inflation_scenario", "cola_scenario",
+                 "expenses_freq", "salary_freq", "post_ret_income_freq", "supp_salary_freq", "sleeve3_payment_freq", "ssi_pia_freq", "cash_cushion_freq"}
+BOOL_FIELDS = {"primary_disabled"}
 
 def _cell_value(wb, name):
     dn = wb.defined_names.get(name)

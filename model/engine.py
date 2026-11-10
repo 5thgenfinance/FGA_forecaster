@@ -40,7 +40,7 @@ class ModelTables:
         return cls(MortalityTable(pd.read_csv(p / "tblMortality.csv")),
                    pd.read_csv(p / "tblInflation.csv"), pd.read_csv(p / "TreasuryCurve.csv"))
 
-    def legacy_inflation(self, cpi_col: str, cola_col: str) -> InflationScenario:
+    def legacy_inflation(self, cpi_col: str, cola_col: str) -> inflation_scenario:
         for c in (cpi_col, cola_col):
             if c not in self.inflation_table.columns:
                 raise KeyError(f"inflation scenario {c!r} not in tblInflation")
@@ -91,7 +91,7 @@ def _mid_surv(i: np.ndarray) -> np.ndarray:
     return out
 
 def run_vectors(inputs: ProjectionInputs, tables: ModelTables, as_of_date: date,
-                inflation: InflationScenario | None = None, curve: DiscountCurve | None = None,
+                inflation: inflation_scenario | None = None, curve: DiscountCurve | None = None,
                 legacy_quirks: bool = True, allow_blank_qx: bool = False) -> tuple[pd.DataFrame, dict]:
     """Return (DataFrame of Phase-A columns keyed by Excel column code, metadata dict).
 
@@ -99,42 +99,42 @@ def run_vectors(inputs: ProjectionInputs, tables: ModelTables, as_of_date: date,
     inputs.retired == 'RETIRED', the mortality valuation date (ASOFDATE).
     legacy_quirks=True reproduces Projection!BT's inconsistent divisors (issue #7).
     """
-    inflation = inflation or tables.legacy_inflation(inputs.InflationScenario, inputs.COLAScenario)
+    inflation = inflation or tables.legacy_inflation(inputs.inflation_scenario, inputs.cola_scenario)
     curve = curve or tables.legacy_curve()
     mort = tables.mortality
-    dobs = [inputs.p_dob] + ([inputs.s_dob] if inputs.joint else [])
+    dobs = [inputs.primary_dob] + ([inputs.spouse_dob] if inputs.joint else [])
     n = min(MAX_HORIZON, proj_length(mort.max_age, dobs, as_of_date))
     if n > len(inflation.cpi):
         raise ValueError(f"inflation scenario {inflation.id!r} covers {len(inflation.cpi)} years; {n} required")
 
     A = np.arange(1, n + 1)
-    B = inputs.cur_year + A - 1
-    C = np.array([age_nearest(inputs.p_dob, date(int(y), 12, 31)) for y in B], float)
-    D = (np.array([age_nearest(inputs.s_dob, date(int(y), 12, 31)) for y in B], float)
+    B = inputs.first_proj_year + A - 1
+    C = np.array([age_nearest(inputs.primary_dob, date(int(y), 12, 31)) for y in B], float)
+    D = (np.array([age_nearest(inputs.spouse_dob, date(int(y), 12, 31)) for y in B], float)
          if inputs.joint else np.full(n, np.nan))
 
     # inflation, expenses
-    E = inflation.expense_factors(inputs.InflationLoad, n)
+    E = inflation.expense_factors(inputs.inflation_load, n)
     F = np.cumprod(E)
-    G = time_factor(inputs.t_expenses) * inputs.net_expenses * F       # G1=base*E1, Gt=G(t-1)*Et
+    G = time_factor(inputs.expenses_freq) * inputs.net_expenses * F       # G1=base*E1, Gt=G(t-1)*Et
 
     # mortgage (BP/BQ feed H)
-    pmt = monthly_payment(inputs.mortgage, inputs.mort_rate, inputs.mort_payments)
-    BP = np.array([mtg_bal_eoy(inputs.mortgage, inputs.mort_rate, pmt, int(a)) for a in A])
+    pmt = monthly_payment(inputs.mortgage, inputs.mortgage_rate, inputs.mortgage_payments_left)
+    BP = np.array([mtg_bal_eoy(inputs.mortgage, inputs.mortgage_rate, pmt, int(a)) for a in A])
     prior_bp = np.concatenate([[inputs.mortgage], BP[:-1]])
     BQ = np.where(prior_bp > 1, pmt * 12, 0.0)
     H = BQ.copy()
 
     # survivorship + discounting
-    asof = as_of_valuation_date(inputs.retired, inputs.t_ret_date, as_of_date)
-    I = project_mortality_rp(mort, n, "last_survivor", inputs.joint, inputs.mort_table, inputs.p_dob,
-                             inputs.s_dob, inputs.p_gender, inputs.disabled, asof, inputs.t_ret_date,
+    asof = as_of_valuation_date(inputs.ret_status, inputs.primary_target_ret_date, as_of_date)
+    I = project_mortality_rp(mort, n, "last_survivor", inputs.joint, inputs.mortality_table, inputs.primary_dob,
+                             inputs.spouse_dob, inputs.p_gender, inputs.primary_disabled, asof, inputs.primary_target_ret_date,
                              allow_blank=allow_blank_qx)
     J = inputs.discount_rate ** A.astype(float)
     K = I * J
     K[0] = max(K[0], K_FLOOR)
 
-    dt = build_discount_table(curve, inputs.spread_emprisk)
+    dt = build_discount_table(curve, inputs.employment_risk_spread)
     ty = dt["Year"].to_numpy()
     L = dt["ExpDiscFact"].to_numpy()[A - 1]
     S = dt["SSIDiscFact"].to_numpy()[A - 1]
@@ -150,23 +150,23 @@ def run_vectors(inputs: ProjectionInputs, tables: ModelTables, as_of_date: date,
     # SSI
     Q = inflation.cola_factors(n)
     R = np.cumprod(Q)
-    V = forecast_ssi(C, Q, inputs.SSI_ret_age, inputs.SSI_PIA, inputs.t_SSI_PIA)
+    V = forecast_ssi(C, Q, inputs.ssi_claim_age, inputs.ssi_pia, inputs.ssi_pia_freq)
     W = V * S * T
     X = _pv_reserve(W, U)
     Y = X - P
 
     # salary
-    AG = np.array([work_incur(int(y), inputs.t_ret_date) for y in B])
+    AG = np.array([work_incur(int(y), inputs.primary_target_ret_date) for y in B])
     sq = np.sqrt(Q)
     AC = np.zeros(n)
-    post = time_factor(inputs.t_income) * inputs.net_income
+    post = time_factor(inputs.post_ret_income_freq) * inputs.post_ret_income
     for t in range(n):
         if AG[t] > 0:
-            base = time_factor(inputs.t_salary) * inputs.salary * AG[t] if t == 0 else AC[t - 1] * AG[t]
+            base = time_factor(inputs.salary_freq) * inputs.salary * AG[t] if t == 0 else AC[t - 1] * AG[t]
         else:
             base = post
         AC[t] = base * sq[t]
-    AD = time_factor(inputs.t_sup_salary) * inputs.sup_salary * np.cumprod(sq)
+    AD = time_factor(inputs.supp_salary_freq) * inputs.supp_salary * np.cumprod(sq)
     AE = (AC + AD) * AA * Z
     AF = _pv_reserve(AE, AB)
 

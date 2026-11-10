@@ -16,13 +16,13 @@ def render_scenario(base: ProjectionInputs, as_of: date):
     with st.expander("Scenario sliders (what-if)", expanded=True):
         sp = st.slider("Primary retirement: months earlier (-) / later (+)", S.SHIFT_MIN, S.SHIFT_MAX, 0, 1,
                        key=f"sc_p_{n}", format="%d mo")
-        st.caption(f"Primary retires {S.add_months(base.t_ret_date, sp):%b %Y} (client: {base.t_ret_date:%b %Y})")
+        st.caption(f"Primary retires {S.add_months(base.primary_target_ret_date, sp):%b %Y} (client: {base.primary_target_ret_date:%b %Y})")
         ss = 0
-        if base.t_s_ret_date is not None:
+        if base.spouse_target_ret_date is not None:
             ss = st.slider("Spouse retirement: months earlier (-) / later (+)", S.SHIFT_MIN, S.SHIFT_MAX, 0, 1,
                            key=f"sc_s_{n}", format="%d mo")
-            st.caption(f"Spouse retires {S.add_months(base.t_s_ret_date, ss):%b %Y} (client: {base.t_s_ret_date:%b %Y})")
-        base_pct = round(base.LTRoR * 100, 6)
+            st.caption(f"Spouse retires {S.add_months(base.spouse_target_ret_date, ss):%b %Y} (client: {base.spouse_target_ret_date:%b %Y})")
+        base_pct = round(base.lt_return_rate * 100, 6)
         lo, hi = S.return_bounds(base_pct)
         rp = st.slider("Advisor rate of return (%)", lo, hi, base_pct, S.RETURN_STEP,
                        key=f"sc_r_{n}_{base_pct}", format="%.2f%%",

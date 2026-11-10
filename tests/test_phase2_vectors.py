@@ -43,7 +43,7 @@ def test_bt_quirk_is_latent_for_default_case(tables, run):
     pd.testing.assert_frame_equal(run[0], fixed)
 
 def test_bt_legacy_quirk_isolated_for_long_mortgage(tables):
-    inp = ProjectionInputs(mort_payments=360)
+    inp = ProjectionInputs(mortgage_payments_left=360)
     legacy, _ = run_vectors(inp, tables, ASOF)
     fixed, meta = run_vectors(inp, tables, ASOF, legacy_quirks=False)
     assert meta["legacy_quirks"] is False
@@ -73,24 +73,24 @@ def test_curve_shift_matches_parallel_rates(tables):
     assert run_vectors(ProjectionInputs(), tables, ASOF, curve=up)[1]["reserve_P1"] < run_vectors(ProjectionInputs(), tables, ASOF)[1]["reserve_P1"]
 
 def test_higher_inflation_raises_expense_reserve(tables):
-    lo = run_vectors(ProjectionInputs(), tables, ASOF, inflation=InflationScenario.constant(0.02, 0.02))[1]["reserve_P1"]
-    hi = run_vectors(ProjectionInputs(), tables, ASOF, inflation=InflationScenario.constant(0.04, 0.02))[1]["reserve_P1"]
+    lo = run_vectors(ProjectionInputs(), tables, ASOF, inflation=inflation_scenario.constant(0.02, 0.02))[1]["reserve_P1"]
+    hi = run_vectors(ProjectionInputs(), tables, ASOF, inflation=inflation_scenario.constant(0.04, 0.02))[1]["reserve_P1"]
     assert hi > lo
 
 def test_zero_cola_keeps_ssi_flat(tables):
-    df, _ = run_vectors(ProjectionInputs(), tables, ASOF, inflation=InflationScenario.constant(0.03, 0.0))
+    df, _ = run_vectors(ProjectionInputs(), tables, ASOF, inflation=inflation_scenario.constant(0.03, 0.0))
     paid = df.loc[df["V"] > 0, "V"]
     assert paid.nunique() == 1 and paid.iloc[0] == pytest.approx(3050 * 12)
 
 def test_scenario_too_short_raises(tables):
-    with pytest.raises(ValueError): run_vectors(ProjectionInputs(), tables, ASOF, inflation=InflationScenario.constant(0.03, n=30))
+    with pytest.raises(ValueError): run_vectors(ProjectionInputs(), tables, ASOF, inflation=inflation_scenario.constant(0.03, n=30))
 
 def test_unknown_legacy_scenario_name(tables):
     with pytest.raises(KeyError): tables.legacy_inflation("NOPE", "COLA70")
 
 # ---- input variants ----
 def test_single_person_runs(tables):
-    df, meta = run_vectors(ProjectionInputs(s_dob=None, t_s_ret_date=None), tables, ASOF)
+    df, meta = run_vectors(ProjectionInputs(spouse_dob=None, spouse_target_ret_date=None), tables, ASOF)
     assert df["D"].isna().all() and meta["n_years"] > 0
     assert (df["I"].diff().dropna() <= 1e-12).all()
 
@@ -103,5 +103,5 @@ def test_mortgage_payments_stop(run):
     assert (df["BQ"].iloc[:5] > 0).all() and (df["BQ"].iloc[5:] == 0).all()
 
 def test_retired_status_uses_as_of_date(tables):
-    _, meta = run_vectors(ProjectionInputs(retired="RETIRED", t_ret_date=date(2026, 1, 1)), tables, ASOF)
+    _, meta = run_vectors(ProjectionInputs(ret_status="RETIRED", primary_target_ret_date=date(2026, 1, 1)), tables, ASOF)
     assert meta["valuation_date"] == "2026-11-03"

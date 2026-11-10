@@ -123,30 +123,30 @@ def test_curve_is_regression_not_interpolation():
 def test_curve_validation():
     with pytest.raises(ValueError): DiscountCurve("bad", (1,), (0.01,))
 def test_inflation_scenario():
-    s = InflationScenario.from_legacy_table(rd("tblInflation"), "CPI70", "COLA70")
+    s = inflation_scenario.from_legacy_table(rd("tblInflation"), "CPI70", "COLA70")
     assert s.expense_factors(0.025, 3)[0] == pytest.approx(1 + 0.057 + 0.025)
     assert s.cola_factors(64)[-1] == pytest.approx(1.0252)
     with pytest.raises(ValueError): s.cola_factors(65)
-    with pytest.raises(ValueError): InflationScenario("pct", (5.7,), (3.0,))
-    assert InflationScenario.constant(0.02).shifted(100).cpi[0] == pytest.approx(0.03)
+    with pytest.raises(ValueError): inflation_scenario("pct", (5.7,), (3.0,))
+    assert inflation_scenario.constant(0.02).shifted(100).cpi[0] == pytest.approx(0.03)
 
 # ---- inputs ----
 def test_input_defaults():
     i = ProjectionInputs()
     assert i.joint and i.discount_rate == pytest.approx(0.952380952380952)
-    assert ProjectionInputs(s_dob=None).joint is False
+    assert ProjectionInputs(spouse_dob=None).joint is False
 def test_input_validation():
-    with pytest.raises(ValueError): ProjectionInputs(SSI_ret_age=55)
-    with pytest.raises(ValueError): ProjectionInputs(t_ret_date=date(1960, 1, 1))
+    with pytest.raises(ValueError): ProjectionInputs(ssi_claim_age=55)
+    with pytest.raises(ValueError): ProjectionInputs(primary_target_ret_date=date(1960, 1, 1))
     with pytest.raises(ValueError): ProjectionInputs(bogus=1)
 
 # ---- column-level parity against cached Projection values ----
 def test_parity_inflation_cola_columns(ref):
-    s = InflationScenario.from_legacy_table(rd("tblInflation"), "CPI70", "COLA70")
+    s = inflation_scenario.from_legacy_table(rd("tblInflation"), "CPI70", "COLA70")
     assert np.allclose(s.expense_factors(0.025, 64), ref["E"], rtol=0, atol=1e-12)
     assert np.allclose(s.cola_factors(64), ref["Q"], rtol=0, atol=1e-12)
 def test_parity_ssi_column_V(ref):
-    s = InflationScenario.from_legacy_table(rd("tblInflation"), "CPI70", "COLA70")
+    s = inflation_scenario.from_legacy_table(rd("tblInflation"), "CPI70", "COLA70")
     v = T.forecast_ssi(ref["C"], s.cola_factors(64), 67, 3050, "Monthly")
     assert np.allclose(v, ref["V"].astype(float), atol=0.01)
 def test_parity_work_fraction_AG(ref):

@@ -2,9 +2,9 @@
   "description": "Retired couple",
   "as_of": "2026-11-06",
   "inputs": {
-    "retired": "RETIRED",
-    "t_ret_date": "2024-03-28",
+    "ret_status": "RETIRED",
+    "primary_target_ret_date": "2024-03-28",
     "salary": 0,
-    "net_income": 2000
+    "post_ret_income": 2000
   }
 }

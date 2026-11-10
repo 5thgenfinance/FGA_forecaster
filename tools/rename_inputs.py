@@ -10,6 +10,8 @@ What it changes (using Python's parser, so comments and prose are left alone):
   * string literals that exactly equal an old name (dict keys, lists, session keys, ...), except in files whose name
     contains parity / export / workbook, because those strings may be Excel defined names. Those are listed for review.
   * JSON files under tests/ whose "inputs" use old keys.
+It does NOT rename a name that is also a class, function or import anywhere in the project (for example a class called
+InflationScenario): reading such a name is left alone and listed for review.
 Requires Python 3.12+ (exact positions inside f-strings).
 """
 from __future__ import annotations
@@ -48,7 +50,27 @@ def py_files(root: Path):
         yield p
 
 
-def analyse(path: Path, mapping: dict[str, str]):
+def bound_names(files, mapping) -> dict[str, list[str]]:
+    """Old names that are ALSO classes, functions or imports somewhere (so they are not plain input names)."""
+    found: dict[str, list[str]] = {}
+    for p in files:
+        try:
+            tree = ast.parse(p.read_bytes())
+        except SyntaxError:
+            continue
+        for node in ast.walk(tree):
+            names = []
+            if isinstance(node, (ast.ClassDef, ast.FunctionDef, ast.AsyncFunctionDef)):
+                names = [node.name]
+            elif isinstance(node, (ast.Import, ast.ImportFrom)):
+                names = [(a.asname or a.name).split(".")[0] for a in node.names]
+            for n in names:
+                if n in mapping:
+                    found.setdefault(n, []).append(f"{p.name}:{node.lineno}")
+    return found
+
+
+def analyse(path: Path, mapping: dict[str, str], bound: dict[str, list[str]]):
     """Return (new_source_bytes | None, stats, review_lines, existing_new_identifiers)."""
     src = path.read_bytes()
     tree = ast.parse(src, filename=str(path))
@@ -80,6 +102,10 @@ def analyse(path: Path, mapping: dict[str, str]):
             if node.id in new_names:
                 existing_new.add(node.id)
             if node.id in mapping:
+                if isinstance(node.ctx, ast.Load) and node.id in bound:
+                    review.append(f"{path.name}:{node.lineno} '{node.id}' is also a class/function/import "
+                                  f"({', '.join(bound[node.id][:3])}); this use left unchanged")
+                    continue
                 s = pos(node.lineno, node.col_offset)
                 add(s, s + len(node.id.encode()), node.id.encode(), mapping[node.id].encode(), "names", node.lineno)
         elif isinstance(node, ast.Attribute):
@@ -179,10 +205,15 @@ def main() -> int:
         if clean is None:
             print("Note: git not available; make your own backup before continuing.")
 
+    files = list(py_files(root))
+    bound = bound_names(files, mapping)
+    if bound:
+        print("Names that are also classes/functions/imports (reads of them are NOT renamed): "
+              + ", ".join(f"{n} ({bound[n][0]})" for n in sorted(bound)) + "\n")
     results, all_review, all_existing, originals = [], [], set(), {}
-    for p in py_files(root):
+    for p in files:
         try:
-            new, stats, review, existing = analyse(p, mapping)
+            new, stats, review, existing = analyse(p, mapping, bound)
         except SyntaxError as e:
             all_review.append(f"{p.relative_to(root)}: could not parse ({e.msg}) - skipped")
             continue
@@ -223,7 +254,7 @@ def main() -> int:
             p.write_bytes(orig)
         print("All Python edits were rolled back (JSON files, if any, were already migrated).")
         return 1
-    print("\nDone. Next: run pytest (golden and rule tests must give identical numbers), then review `git diff`.")
+    print("\nDone. Next: run `python -m pyflakes .` (or `ruff check --select F821 .`) to catch undefined names, then pytest.")
     return 0
 
 

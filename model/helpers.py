@@ -31,9 +31,9 @@ def age_nearest(dob: date, as_of: date) -> int:
     since, to_next = (as_of - last).days, (nxt - as_of).days
     return attained_age(dob, as_of) + (1 if to_next < since else 0)
 
-def as_of_valuation_date(retired: str, t_ret_date: date, today: date) -> date:
+def as_of_valuation_date(ret_status: str, primary_target_ret_date: date, today: date) -> date:
     """ASOFDATE: today if RETIRED, else target retirement date."""
-    return today if retired == "RETIRED" else t_ret_date
+    return today if ret_status == "RETIRED" else primary_target_ret_date
 
 def retire_age(dob: date | None, ret_date: date | None) -> int:
     """RETIREAGE; raises ValueError where Excel returns #N/A."""

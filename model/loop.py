@@ -39,10 +39,10 @@ class ForwardTables:
 
 def opening_balances(inputs: ProjectionInputs) -> dict:
     """Projection row 5 (AT5..BN5)."""
-    bk = inputs.sleeve3_deployed
-    bl = inputs.cash_cushion_amt
-    return {"AT": inputs.pre_401k, "AU": inputs.pre_IRA, "AY": inputs.s_pre_IRA, "BI": inputs.post_401k,
-            "BJ": inputs.roth_IRA, "BK": bk, "BL": bl, "BM": inputs.brokerage_net - bk - bl,
+    bk = inputs.sleeve3_balance
+    bl = inputs.cash_cushion_balance
+    return {"AT": inputs.pretax_401k, "AU": inputs.primary_trad_ira, "AY": inputs.spouse_trad_ira, "BI": inputs.roth_401k,
+            "BJ": inputs.roth_ira, "BK": bk, "BL": bl, "BM": inputs.brokerage_net - bk - bl,
             "BN": inputs.real_estate + inputs.other_PMs}
 
 def run_forward(inputs: ProjectionInputs, vec: pd.DataFrame, ft: ForwardTables,
@@ -55,23 +55,23 @@ def run_forward(inputs: ProjectionInputs, vec: pd.DataFrame, ft: ForwardTables,
     out = {c: np.zeros(n) for c in FORWARD_COLUMNS}
     ob = opening_balances(inputs)
     prev = dict(ob)
-    g401, ltror, s3irr = inputs.growth_rt_401k, inputs.LTRoR, inputs.sup_inc_irr
+    g401, ltror, s3irr = inputs.growth_rate_401k, inputs.lt_return_rate, inputs.sleeve3_growth_rate
     for t in range(n):
         yr = int(v["B"][t])
         # ages / eligibility
         if t == 0:
-            av = attained_age(inputs.p_dob, date(yr - 1, 12, 31))
-            az = attained_age(inputs.s_dob, date(yr - 1, 12, 31)) if joint else np.nan
+            av = attained_age(inputs.primary_dob, date(yr - 1, 12, 31))
+            az = attained_age(inputs.spouse_dob, date(yr - 1, 12, 31)) if joint else np.nan
         else:
             av, az = out["AV"][t - 1] + 1, out["AZ"][t - 1] + 1
         aw = 1.0 if av > C.WITHDRAWAL_ELIGIBLE_AGE else 0.0
         ba = 1.0 if (joint and az > C.WITHDRAWAL_ELIGIBLE_AGE) else 0.0
         # RMDs on prior-year balances
-        ax = rmd(inputs.p_dob, yr, prev["AU"], ft.lurmd)
-        bb = rmd(inputs.s_dob, yr, prev["AY"], ft.lurmd) if joint else 0.0
+        ax = rmd(inputs.primary_dob, yr, prev["AU"], ft.lurmd)
+        bb = rmd(inputs.spouse_dob, yr, prev["AY"], ft.lurmd) if joint else 0.0
         # income
         ac, ad, vs, rr = v["AC"][t], v["AD"][t], v["V"][t], v["R"][t]
-        ai = prev["BK"] * inputs.sleeve3_ror
+        ai = prev["BK"] * inputs.sleeve3_income_rate
         am = ac + ad + ai + ax + bb + vs
         an = ira_fill(ft.tax, ac + ad + ax + bb + 0.2 * ai, 0.8 * ai, joint, rr - 1, 1, prev["AU"] + prev["AY"], 1)
         bd = pretax_draw(an - ax, prev["AU"], draw_pct, aw) + ax

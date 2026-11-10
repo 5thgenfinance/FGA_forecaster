@@ -77,17 +77,17 @@ def _cols(prefix: str, sex: str, phase: str) -> tuple[str, str]:
 
 
 def project_mortality_rp(tbl: MortalityTable, proj_duration: int, status: str, is_joint: bool, prefix: str,
-                         p_dob: date, s_dob, p_gender: str, disabled: bool,
-                         as_of: date, t_ret_date: date, allow_blank: bool = False) -> np.ndarray:
+                         primary_dob: date, spouse_dob, p_gender: str, primary_disabled: bool,
+                         as_of: date, primary_target_ret_date: date, allow_blank: bool = False) -> np.ndarray:
     """PROJECTMORTALITY_RP (Projection!I). `as_of` must be ASOFDATE(): t_ret_date when PRERET, today when RETIRED."""
-    age_x = age_nearest(p_dob, as_of)
+    age_x = age_nearest(primary_dob, as_of)
     p_sex = "M" if p_gender.strip().upper() == "M" else "F"
     s_sex = "F" if p_sex == "M" else "M"
-    yrs_to_ret = max(0, int(excel_round((t_ret_date - as_of).days / 365.25, 0)))
-    ph = "D" if disabled else "H"
+    yrs_to_ret = max(0, int(excel_round((primary_target_ret_date - as_of).days / 365.25, 0)))
+    ph = "D" if primary_disabled else "H"
     tpx = tpx_curve_rp(tbl, *_cols(prefix, p_sex, ph), age_x, proj_duration, yrs_to_ret, allow_blank)
     if not is_joint:
         return tpx
-    age_y = age_nearest(s_dob, as_of)
+    age_y = age_nearest(spouse_dob, as_of)
     tpy = tpx_curve_rp(tbl, *_cols(prefix, s_sex, "H"), age_y, proj_duration, 0, allow_blank)
     return frasier(tpx, tpy, status)

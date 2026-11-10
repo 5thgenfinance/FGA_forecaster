@@ -70,7 +70,7 @@ def build_summary(inputs: ProjectionInputs, df: pd.DataFrame) -> dict:
     f3 = float(df["AQ"].sum() + mortgage_balance)
     feed = df.dropna(subset=["DH"])
     peak_i = int(feed["DH"].to_numpy().argmax())
-    pos = df[(df["CX"] > 0) & (df["CW"] >= inputs.t_ret_date.year)]
+    pos = df[(df["CX"] > 0) & (df["CW"] >= inputs.primary_target_ret_date.year)]
     return {"act_assets_C1": c1, "act_liabilities_C2": c2, "surplus_C3": c1 - c2,
             "funding_ratio": c1 / c2 if c2 else float("nan"),
             "balance_sheet_assets_F2": f2, "balance_sheet_liabilities_F3": f3,

@@ -6,33 +6,33 @@ from pydantic import ValidationError
 from model.inputs import ProjectionInputs
 
 INPUT_GROUPS: dict[str, list[str]] = {
-    "Personal": ["p_dob", "p_gender", "disabled", "include_spouse", "s_dob", "mort_table", "retired", "t_ret_date", "t_s_ret_date", "cur_year"],
-    "Income": ["salary", "t_salary", "sup_salary", "t_sup_salary", "net_income", "t_income", "inc_tax_status", "spread_emprisk"],
-    "Expenses": ["net_expenses", "t_expenses", "cash_cushion", "cash_cushion_amt", "t_cashcush"],
-    "Accounts": ["pre_401k", "post_401k", "pre_IRA", "s_pre_IRA", "roth_IRA", "brokerage", "life_ins", "real_estate", "other_PMs"],
-    "Mortgage": ["mortgage", "mort_rate", "mort_payments"],
-    "Social Security": ["SSI_ret_age", "SSI_PIA", "t_SSI_PIA"],
-    "Sleeve 3": ["sleeve3_deployed", "sup_income", "t_sup_income", "sleeve3_ror", "sup_inc_irr"],
-    "Rates": ["hurdle_rate", "LTRoR", "growth_rt_401k", "contrib_rt_401k", "InflationLoad"],
-    "Scenarios": ["InflationScenario", "COLAScenario"],
+    "Personal": ["primary_dob", "p_gender", "primary_disabled", "include_spouse", "spouse_dob", "mortality_table", "ret_status", "primary_target_ret_date", "spouse_target_ret_date", "first_proj_year"],
+    "Income": ["salary", "salary_freq", "supp_salary", "supp_salary_freq", "post_ret_income", "post_ret_income_freq", "income_tax_status", "employment_risk_spread"],
+    "Expenses": ["net_expenses", "expenses_freq", "cash_cushion_months", "cash_cushion_balance", "cash_cushion_freq"],
+    "Accounts": ["pretax_401k", "roth_401k", "primary_trad_ira", "spouse_trad_ira", "roth_ira", "brokerage", "life_ins", "real_estate", "other_PMs"],
+    "Mortgage": ["mortgage", "mortgage_rate", "mortgage_payments_left"],
+    "Social Security": ["ssi_claim_age", "ssi_pia", "ssi_pia_freq"],
+    "Sleeve 3": ["sleeve3_balance", "sleeve3_payment", "sleeve3_payment_freq", "sleeve3_income_rate", "sleeve3_growth_rate"],
+    "Rates": ["hurdle_rate", "lt_return_rate", "growth_rate_401k", "contrib_rate_401k", "inflation_load"],
+    "Scenarios": ["inflation_scenario", "cola_scenario"],
 }
 LABELS = {
-    "p_dob": "Primary date of birth", "p_gender": "Primary gender", "disabled": "Primary disabled", "include_spouse": "Include spouse",
-    "s_dob": "Spouse date of birth", "mort_table": "Mortality table", "retired": "Retirement status", "t_ret_date": "Primary target retirement date",
-    "t_s_ret_date": "Spouse target retirement date", "cur_year": "First projection year", "salary": "Salary", "t_salary": "Salary frequency",
-    "sup_salary": "Supplemental salary", "t_sup_salary": "Supplemental salary frequency", "net_income": "Post-retirement income",
-    "t_income": "Post-retirement income frequency", "inc_tax_status": "Income tax status", "spread_emprisk": "Employment risk spread (%)",
-    "net_expenses": "Net expenses", "t_expenses": "Expense frequency", "cash_cushion": "Cash cushion (months)", "cash_cushion_amt": "Cash cushion amount",
-    "t_cashcush": "Cash cushion frequency", "pre_401k": "Pre-tax 401(k)", "post_401k": "Post-tax 401(k)", "pre_IRA": "Primary traditional IRA",
-    "s_pre_IRA": "Spouse traditional IRA", "roth_IRA": "Roth IRA", "brokerage": "Brokerage accounts", "life_ins": "Life insurance cash value",
-    "real_estate": "Real estate", "other_PMs": "Other precious metals / real assets", "mortgage": "Mortgage balance", "mort_rate": "Mortgage rate (%)",
-    "mort_payments": "Remaining payments", "SSI_ret_age": "Social Security election age", "SSI_PIA": "Social Security benefit (PIA)",
-    "t_SSI_PIA": "Benefit frequency", "sleeve3_deployed": "Sleeve 3 deployed", "sup_income": "Sleeve 3 payment", "t_sup_income": "Sleeve 3 payment frequency",
-    "sleeve3_ror": "Sleeve 3 income rate (%)", "sup_inc_irr": "Sleeve 3 growth (%)", "hurdle_rate": "Hurdle rate (%)", "LTRoR": "Long-term asset return (%)",
-    "growth_rt_401k": "401(k) / cash growth (%)", "contrib_rt_401k": "401(k) contribution rate (%)", "InflationLoad": "Inflation load (%)",
-    "InflationScenario": "Inflation scenario", "COLAScenario": "COLA scenario",
+    "primary_dob": "Primary date of birth", "p_gender": "Primary gender", "primary_disabled": "Primary disabled", "include_spouse": "Include spouse",
+    "spouse_dob": "Spouse date of birth", "mortality_table": "Mortality table", "ret_status": "Retirement status", "primary_target_ret_date": "Primary target retirement date",
+    "spouse_target_ret_date": "Spouse target retirement date", "first_proj_year": "First projection year", "salary": "Salary", "salary_freq": "Salary frequency",
+    "supp_salary": "Supplemental salary", "supp_salary_freq": "Supplemental salary frequency", "post_ret_income": "Post-retirement income",
+    "post_ret_income_freq": "Post-retirement income frequency", "income_tax_status": "Income tax status", "employment_risk_spread": "Employment risk spread (%)",
+    "net_expenses": "Net expenses", "expenses_freq": "Expense frequency", "cash_cushion_months": "Cash cushion (months)", "cash_cushion_balance": "Cash cushion amount",
+    "cash_cushion_freq": "Cash cushion frequency", "pretax_401k": "Pre-tax 401(k)", "roth_401k": "Post-tax 401(k)", "primary_trad_ira": "Primary traditional IRA",
+    "spouse_trad_ira": "Spouse traditional IRA", "roth_ira": "Roth IRA", "brokerage": "Brokerage accounts", "life_ins": "Life insurance cash value",
+    "real_estate": "Real estate", "other_PMs": "Other precious metals / real assets", "mortgage": "Mortgage balance", "mortgage_rate": "Mortgage rate (%)",
+    "mortgage_payments_left": "Remaining payments", "ssi_claim_age": "Social Security election age", "ssi_pia": "Social Security benefit (PIA)",
+    "ssi_pia_freq": "Benefit frequency", "sleeve3_balance": "Sleeve 3 deployed", "sleeve3_payment": "Sleeve 3 payment", "sleeve3_payment_freq": "Sleeve 3 payment frequency",
+    "sleeve3_income_rate": "Sleeve 3 income rate (%)", "sleeve3_growth_rate": "Sleeve 3 growth (%)", "hurdle_rate": "Hurdle rate (%)", "lt_return_rate": "Long-term asset return (%)",
+    "growth_rate_401k": "401(k) / cash growth (%)", "contrib_rate_401k": "401(k) contribution rate (%)", "inflation_load": "Inflation load (%)",
+    "inflation_scenario": "Inflation scenario", "cola_scenario": "COLA scenario",
 }
-PCT_FIELDS = {"spread_emprisk", "mort_rate", "sleeve3_ror", "sup_inc_irr", "hurdle_rate", "LTRoR", "growth_rt_401k", "contrib_rt_401k", "InflationLoad"}
+PCT_FIELDS = {"employment_risk_spread", "mortgage_rate", "sleeve3_income_rate", "sleeve3_growth_rate", "hurdle_rate", "lt_return_rate", "growth_rate_401k", "contrib_rate_401k", "inflation_load"}
 from app.help_text import HELP
 
 def field_kind(name: str) -> str:
@@ -54,7 +54,7 @@ def to_form_values(inputs: ProjectionInputs) -> dict[str, Any]:
     d = inputs.model_dump()
     for f in PCT_FIELDS:
         d[f] = round(d[f] * 100, 6)
-    d["include_spouse"] = inputs.s_dob is not None
+    d["include_spouse"] = inputs.spouse_dob is not None
     return d
 
 def form_to_inputs(values: dict[str, Any]) -> tuple[ProjectionInputs | None, dict[str, str]]:
@@ -65,7 +65,7 @@ def form_to_inputs(values: dict[str, Any]) -> tuple[ProjectionInputs | None, dic
         if f in v and v[f] is not None:
             v[f] = float(v[f]) / 100.0
     if not include_spouse:
-        v["s_dob"], v["t_s_ret_date"] = None, None
+        v["spouse_dob"], v["spouse_target_ret_date"] = None, None
     try:
         return ProjectionInputs(**v), {}
     except ValidationError as e:

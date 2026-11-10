@@ -77,11 +77,11 @@ def main():
     for group, fields in SIDEBAR_GROUPS.items():
         with st.sidebar.expander(group, expanded=group == "Mortality"):
             for f in fields:
-                if f in ("InflationScenario", "COLAScenario"):
+                if f in ("inflation_scenario", "cola_scenario"):
                     cols = [c for c in tables.inflation_table.columns if c != "ForecastYr"]
                     side[f] = st.selectbox(LABELS[f], cols, index=cols.index(defaults[f]) if defaults[f] in cols else 0, key=f)
-                elif f == "mort_table":
-                    opts = mortality_options(data_dir(), st.session_state.get("mort_table"))
+                elif f == "mortality_table":
+                    opts = mortality_options(data_dir(), st.session_state.get("mortality_table"))
                     side[f] = st.selectbox(LABELS[f], opts, index=opts.index(defaults[f]) if defaults[f] in opts else 0, key=f)
                 else:
                     side[f] = widget(f, defaults[f], f)

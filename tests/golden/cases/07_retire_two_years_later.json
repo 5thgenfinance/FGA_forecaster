@@ -2,6 +2,6 @@
   "description": "Primary retirement 24 months later",
   "as_of": "2026-11-06",
   "inputs": {
-    "t_ret_date": "2031-03-28"
+    "primary_target_ret_date": "2031-03-28"
   }
 }

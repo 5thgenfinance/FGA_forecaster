@@ -9,7 +9,7 @@ except ImportError:
 
 pytestmark = pytest.mark.rules
 
-SINGLE = {"s_dob": None, "t_s_ret_date": None}
+SINGLE = {"spouse_dob": None, "spouse_target_ret_date": None}
 
 
 def test_survivorship_is_a_probability_that_never_rises():
@@ -39,5 +39,5 @@ def test_lower_expenses_do_the_opposite():
 
 def test_single_plan_ignores_spouse_inputs():
     a = run(SINGLE).kpis
-    b = run({**SINGLE, "s_pre_IRA": 0.0}).kpis
+    b = run({**SINGLE, "spouse_trad_ira": 0.0}).kpis
     assert dict(a) == dict(b)
