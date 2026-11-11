@@ -69,9 +69,9 @@ class ProjectionInputs(BaseModel):
     @model_validator(mode="after")
     def _checks(self):
         if self.spouse_dob is not None and not (1900 < self.spouse_dob.year < 2100):
-            raise ValueError("s_dob out of range")
+            raise ValueError("Spouse DOB out of range")
         if self.primary_target_ret_date < self.primary_dob:
-            raise ValueError("t_ret_date precedes p_dob")
+            raise ValueError("primary retirement date precedes dob")
         return self
 
     @property

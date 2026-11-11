@@ -49,11 +49,11 @@ def apply_overrides(base: ProjectionInputs, overrides: dict) -> tuple[Projection
 def describe(base: ProjectionInputs, overrides: dict) -> list[str]:
     out = []
     if "primary_target_ret_date" in overrides:
-        out.append(f"primary retires {overrides['t_ret_date']:%b %Y} (client: {base.primary_target_ret_date:%b %Y})")
+        out.append(f"primary retires {overrides['primary_target_ret_date']:%b %Y} (client: {base.primary_target_ret_date:%b %Y})")
     if "spouse_target_ret_date" in overrides:
-        out.append(f"spouse retires {overrides['t_s_ret_date']:%b %Y} (client: {base.spouse_target_ret_date:%b %Y})")
+        out.append(f"spouse retires {overrides['spouse_target_ret_date']:%b %Y} (client: {base.spouse_target_ret_date:%b %Y})")
     if "lt_return_rate" in overrides:
-        out.append(f"advisor return {overrides['LTRoR'] * 100:.2f}% (client: {base.lt_return_rate * 100:.2f}%)")
+        out.append(f"advisor return {overrides['lt_return_rate'] * 100:.2f}% (client: {base.lt_return_rate * 100:.2f}%)")
     if "net_expenses" in overrides:
         pct = (overrides["net_expenses"] / base.net_expenses - 1.0) * 100.0 if base.net_expenses else 0.0
         out.append(f"disposable income {pct:+.1f}% (net expenses ${overrides['net_expenses']:,.0f} vs client ${base.net_expenses:,.0f})")
