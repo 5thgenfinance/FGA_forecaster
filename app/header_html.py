@@ -1,18 +1,20 @@
 """HTML/CSS builders for the header, title and footer (no Streamlit import, so they are unit-testable)."""
 from __future__ import annotations
+from app.version import version_line
+
 import base64, html
 from datetime import date
 from pathlib import Path
 from string import Template
 
+
 ROOT = Path(__file__).resolve().parents[1]
 ASSETS = ROOT / "assets" / "brand"
 PRODUCT = "Fifth Generation Retirement Illustrator"
-FIRM = "Fifth Generation Advisers \u00b7 Registered Investment Adviser"
+FIRM = "Fifth Generation Advisers \u00b7 Registered Investment Adviser \u00b7 " + version_line()
 DISCLOSURE = "Hypothetical illustration based on stated assumptions; not a guarantee of future results."
 NAVY, BRONZE, OFFWHITE, CHARCOAL = "#1a2744", "#c49a4a", "#f7f4ef", "#2c2c2c"
 _MIME = {".svg": "image/svg+xml", ".png": "image/png", ".jpg": "image/jpeg"}
-
 
 def asset_path(name: str) -> Path:
     """Prefer vector/transparent files when present: name.svg, then name.png, then name.jpg."""
