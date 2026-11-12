@@ -53,3 +53,17 @@ def plotly_layout() -> dict:
 def apply_to_figure(fig):
     fig.update_layout(**plotly_layout())
     return fig
+
+
+def report_brand():
+    # Brand for the HTML/PDF report and charts, built from the same tokens as the app.
+    from .dashboard import Brand
+
+    return Brand(
+        firm_name=BRAND.get("firm_name", "Fifth Generation Advisers"),
+        tagline=BRAND.get("tagline", "Registered Investment Adviser"),
+        report_title="Retirement Forecast",
+        primary=NAVY, accent=BRONZE, light=OFFWHITE,
+        font=f"'{BODY}', Helvetica, Arial, sans-serif",
+        palette=tuple(SERIES[:6]) + ("#C0392B",),   # 7 entries; index 6 = income taxes (red)
+    )

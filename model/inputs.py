@@ -28,7 +28,7 @@ class ProjectionInputs(BaseModel):
     cash_cushion_months: float = 5
     cash_cushion_balance: float = Field(25_000, ge=0)
     inflation_scenario: str = "CPI70"
-    inflation_load: float = 0.025
+    inflation_load: float = 0.0125
     cola_scenario: str = "COLA70"
     # accounts
     pretax_401k: float = Field(47_000, ge=0)
@@ -54,7 +54,7 @@ class ProjectionInputs(BaseModel):
     sleeve3_balance: float = Field(200_000, ge=0)   # Main!B55
     # rates
     hurdle_rate: float = Field(0.05, gt=-0.5, lt=1)
-    lt_return_rate: float = 0.125
+    lt_return_rate: float = 0.085
     growth_rate_401k: float = 0.035
     contrib_rate_401k: float = 0.14
     # frequency flags (Main column C)

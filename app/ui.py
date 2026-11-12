@@ -31,12 +31,14 @@ from app.help_page import render_help_sidebar
 from model import branding as B
 from model import table_store as TS
 from model.dashboard import Brand, build_figures, build_report_data, fmt_money, fmt_pct
+from model.branding import report_brand
 from model.engine import ModelTables
 from model.inputs import ProjectionInputs
 from model.loop import ForwardTables
 from model.parity import COLUMN_GROUPS
 from model.report import build_html, scenario_table
 from app.auth_gate import gate
+from app.version import version_line
 
 def data_dir() -> str:
     return str(TS.effective_dir())
@@ -142,7 +144,7 @@ def main():
     f[2].metric("Net cash flow", fmt_money(r["CD"]))
     f[3].metric("Spending", fmt_money(r["G"] + r["H"]))
 
-    figs = build_figures(rd, Brand(), scen)
+    figs = build_figures(rd, report_brand(), scen)
     for name in ("assets_vs_liability", "cash_flow"):
         st.plotly_chart(figs[name], use_container_width=True)
     left, right = st.columns([1, 2])
@@ -164,7 +166,11 @@ def main():
         rd.df.to_excel(xw, sheet_name="Projection", index=False)
     d2.download_button("Download XLSX", buf.getvalue(), "projection.xlsx",
                        "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
-    d3.download_button("Download HTML report", build_html(rd, figs, Brand()), "report.html", "text/html")
+    d3.download_button("Download HTML report",
+                       build_html(rd, figs, report_brand(),
+                                  client_name=st.session_state.get("client_name", ""),
+                                  footer_note=version_line()),
+                       "report.html", "text/html")
     render_footer()
 
 if __name__ == "__main__":
