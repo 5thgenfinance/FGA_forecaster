@@ -4,7 +4,7 @@ import streamlit as st
 from model import branding as B
 from model import table_store as TS
 
-VIEWS = ("forecast", "settings", "client")
+VIEWS = ("forecast", "settings", "client", "help")
 _CSS = """<style>
 .block-container { padding-top: 1rem !important; }
 header[data-testid="stHeader"] { background: transparent; }
@@ -22,7 +22,10 @@ def _go(view: str) -> None:
 def render_topbar() -> None:
     """Call first on every run, after apply_branding(). Logo left, icons right, tight together."""
     st.markdown(_CSS, unsafe_allow_html=True)
-    left, c1, c2 = st.columns([20, 1, 1], gap="small", vertical_alignment="center")
+    left, c1, c2, c3 = st.columns([18, 1, 1, 1], gap="small", vertical_alignment="center")
+    c3.button("", icon=":material/help:", key="btn_help", help="User guide",
+              type="primary" if current_view() == "help" else "secondary",
+              on_click=_go, args=("help" if current_view() != "help" else "forecast",))
     with left:
         st.image(str(B.logo_path("ribbon", dark_surface=False)), width=220)
     v = current_view()
@@ -93,3 +96,11 @@ def client_page() -> None:
             st.session_state["client"] = d
             st.success("Saved for this session.")
     st.caption("Model inputs (dates of birth, balances, etc.) are still entered in the sidebar on the forecast page.")
+
+
+def help_page() -> None:
+    # Full-page user guide (docs/USER_GUIDE.md).
+    from app.help_page import render_help_page
+
+    st.button("Back to forecast", icon=":material/arrow_back:", key="help_back", on_click=_go, args=("forecast",))
+    render_help_page()

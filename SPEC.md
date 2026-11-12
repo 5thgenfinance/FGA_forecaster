@@ -1,11 +1,12 @@
-# Retirement Model, Illustration and Forecasting Tool — Python Application Specification — Version 1.1
-Generated from the workbook on 2026-11-03. Lines marked LIVE update from Excel. Version 1.1 amended 2026-11-07: sections 14 and the items marked [v1.1] are maintained by hand and are NOT regenerated from the workbook.
+# Retirement Model, Illustration and Forecasting Tool — Python Application Specification — Version 1.2
+Generated from the workbook on 2026-11-03. Lines marked LIVE update from Excel. Version 1.1 amended 2026-11-07: sections 14 and the items marked [v1.1] are maintained by hand and are NOT regenerated from the workbook. Version 1.2 amended 2026-11-11: input names standardised (section 14.7); calculations unchanged.
 
 ## Revision history
 | Version | Date | Summary |
 |---|---|---|
 | 1.0 | 2026-11-03 | Original specification generated from the workbook (sections 0 to 13). |
 | 1.1 | 2026-11-07 | Application-layer amendments made while building and testing the app: product branding and sticky header; Client details page with JSON save/load and tooltips; Income tax status as a PRE/POST choice; mortality-table handling (RP-2014 and the single-column IAM2012 convention, IAM2012 withheld from the dropdown); new Disposable income scenario slider; deployment and access notes; new known issues #15 to #17; updated acceptance-test notes. Calculation logic in sections 5, 8 and 9 is unchanged. |
+| 1.2 | 2026-11-11 | Input names standardised: primary_/spouse_ prefixes, _freq and _rate suffixes, one mapping file (model/input_names.json); Python-name column added to section 3; new section 14.7; new section 8.3 restating each projection column as a formula; legacy client files migrate on import. Calculation logic in sections 5, 8 and 9 is unchanged. |
 
 Rules for this document: workbook-driven sections (3, 4, 8, 9, 10, 11) are regenerated from the workbook; the amendments marked [v1.1] and section 14 are not, and must be carried forward by hand when the sheet is regenerated.
 
@@ -36,60 +37,60 @@ The Excel workbook is the source of truth for the calculations. Python must repr
 
 ## 3. Inputs — LIVE defaults from Main
 Every row below is an editable and validated input in JSON/YAML, CLI, and UI. Dates use ISO yyyy-mm-dd.
-| Label | Main cell | Defined name | Default |
-|---|---|---|---|
-| Primary DOB | Main!B4 | p_dob | 1969-03-28 |
-| Spouse DOB | Main!B5 | s_dob | 1971-01-01 |
-| Year | Main!B6 | cur_year | 2027 |
-| Primary Target Ret Date | Main!B7 | t_ret_date | 2029-03-28 |
-| Prim Ret Status | Main!B8 | retired | PRERET |
-| Joint | Main!B9 | joint | TRUE |
-| Secondary Target Ret Dt | Main!B10 | t_s_ret_date | 49031 |
-| Primary Gender | Main!B12 | p_gender | M |
-| Disabled | Main!B13 | disabled | FALSE |
-| Mortality | Main!B14 | mort_table | RP-2014 (choice list; see 5.3 and 14.4) [v1.1] |
-| Main Salary | Main!B17 | salary | 110000 |
-| Sup Income | Main!B18 | sup_salary | 0 |
-| Income Tax Status | Main!B19 | inc_tax_status | PRE (choice of PRE or POST) [v1.1] |
-| Employment Risk Spread | Main!B20 | spread_emprisk | 0.015 |
-| Post Retirement Income | Main!B21 | net_income | 0 |
-| Net Expenses | Main!B22 | net_expenses | 5000 |
-| Cash Cushion | Main!B23 | cash_cushion | 5 |
-| Cash Cushion Amt | Main!B24 | cash_cushion_amt | 25000 |
-| Inflation Scenario | Main!B25 | InflationScenario | CPI70 |
-| Inflation Load | Main!B26 | InflationLoad | 0.025 (see known issue #15) |
-| COLA | Main!B27 | COLAScenario | COLA70 |
-| Pre 401k | Main!B30 | pre_401k | 47000 |
-| Prim Trad IRA | Main!B32 | pre_IRA | 300000 |
-| Roth IRA | Main!B34 | roth_IRA | 150000 |
-| Mortgage | Main!C35 | mortgage | 150000 |
-| Rate | Main!C36 | mort_rate | 0.03 |
-| Remaining Pmts | Main!C37 | mort_payments | 60 |
-| Brokerage Accts | Main!B40 | brokerage | 300000 |
-| Real Estate | Main!B42 | real_estate | 400000 |
-| SSI Elected Ret age | Main!B47 | SSI_ret_age | 67 |
-| SSI PIA | Main!B49 | SSI_PIA | 3050 |
-| Sleeve 3 Payment | Main!B52 | sup_income | 2000 |
-| Sleeve 3 RoR | Main!B53 | sleeve3_ror | 0.14 |
-| Sleeve 3 Growth | Main!B54 | sup_inc_irr | 0.04 |
-| Sleeve 3 Deployed | Main!B55 | (unnamed) | 200000 |
-| Hurdle Rate | Main!B62 | hurdle_rate | 0.05 |
-| Discount Rate | Main!B64 | discount_rate | 0.952380952380952 |
-| Long Term Asset RoR | Main!B65 | LTRoR | 0.125 |
-| 401k Growth Rate MM | Main!B66 | growth_rt_401k | 0.035 |
-| 401k Contribution Rate | Main!B67 | contrib_rt_401k | 0.14 |
+| Label | Main cell | Defined name | Python name | Default |
+|---|---|---|---|---|
+| Primary DOB | Main!B4 | p_dob | primary_dob | 1969-03-28 |
+| Spouse DOB | Main!B5 | s_dob | spouse_dob | 1971-01-01 |
+| Year | Main!B6 | cur_year | first_proj_year | 2027 |
+| Primary Target Ret Date | Main!B7 | t_ret_date | primary_target_ret_date | 2029-03-28 |
+| Prim Ret Status | Main!B8 | retired | ret_status | PRERET |
+| Joint | Main!B9 | joint | joint | TRUE |
+| Secondary Target Ret Dt | Main!B10 | t_s_ret_date | spouse_target_ret_date | 49031 |
+| Primary Gender | Main!B12 | p_gender | p_gender | M |
+| Disabled | Main!B13 | disabled | primary_disabled | FALSE |
+| Mortality | Main!B14 | mort_table | mortality_table | RP-2014 (choice list; see 5.3 and 14.4) [v1.1] |
+| Main Salary | Main!B17 | salary | salary | 110000 |
+| Sup Income | Main!B18 | sup_salary | supp_salary | 0 |
+| Income Tax Status | Main!B19 | inc_tax_status | income_tax_status | PRE (choice of PRE or POST) [v1.1] |
+| Employment Risk Spread | Main!B20 | spread_emprisk | employment_risk_spread | 0.015 |
+| Post Retirement Income | Main!B21 | net_income | post_ret_income | 0 |
+| Net Expenses | Main!B22 | net_expenses | net_expenses | 5000 |
+| Cash Cushion | Main!B23 | cash_cushion | cash_cushion_months | 5 |
+| Cash Cushion Amt | Main!B24 | cash_cushion_amt | cash_cushion_balance | 25000 |
+| Inflation Scenario | Main!B25 | InflationScenario | inflation_scenario | CPI70 |
+| Inflation Load | Main!B26 | InflationLoad | inflation_load | 0.025 (see known issue #15) |
+| COLA | Main!B27 | COLAScenario | cola_scenario | COLA70 |
+| Pre 401k | Main!B30 | pre_401k | pretax_401k | 47000 |
+| Prim Trad IRA | Main!B32 | pre_IRA | primary_trad_ira | 300000 |
+| Roth IRA | Main!B34 | roth_IRA | roth_ira | 150000 |
+| Mortgage | Main!C35 | mortgage | mortgage | 150000 |
+| Rate | Main!C36 | mort_rate | mortgage_rate | 0.03 |
+| Remaining Pmts | Main!C37 | mort_payments | mortgage_payments_left | 60 |
+| Brokerage Accts | Main!B40 | brokerage | brokerage | 300000 |
+| Real Estate | Main!B42 | real_estate | real_estate | 400000 |
+| SSI Elected Ret age | Main!B47 | SSI_ret_age | ssi_claim_age | 67 |
+| SSI PIA | Main!B49 | SSI_PIA | ssi_pia | 3050 |
+| Sleeve 3 Payment | Main!B52 | sup_income | sleeve3_payment | 2000 |
+| Sleeve 3 RoR | Main!B53 | sleeve3_ror | sleeve3_income_rate | 0.14 |
+| Sleeve 3 Growth | Main!B54 | sup_inc_irr | sleeve3_growth_rate | 0.04 |
+| Sleeve 3 Deployed | Main!B55 | (unnamed) | sleeve3_balance | 200000 |
+| Hurdle Rate | Main!B62 | hurdle_rate | hurdle_rate | 0.05 |
+| Discount Rate | Main!B64 | discount_rate | discount_rate | 0.952380952380952 |
+| Long Term Asset RoR | Main!B65 | LTRoR | lt_return_rate | 0.125 |
+| 401k Growth Rate MM | Main!B66 | growth_rt_401k | growth_rate_401k | 0.035 |
+| 401k Contribution Rate | Main!B67 | contrib_rt_401k | contrib_rate_401k | 0.14 |
 
 [v1.1] Input-model notes:
-* inc_tax_status is validated as a choice: "PRE" or "POST". Any other value is rejected, including on import of a saved client file.
-* The model also holds inputs that are not listed in the table above because their defaults are zero or blank in the workbook: post_401k, s_pre_IRA, life_ins, other_PMs. They are editable in the UI and part of the JSON client file. life_ins is added to brokerage in BM5.
+* income_tax_status is validated as a choice: "PRE" or "POST". Any other value is rejected, including on import of a saved client file.
+* The model also holds inputs that are not listed in the table above because their defaults are zero or blank in the workbook: roth_401k, spouse_trad_ira, life_ins, other_PMs. They are editable in the UI and part of the JSON client file. life_ins is added to brokerage in BM5.
 * client_name is metadata stored in the client file and shown in the dashboard heading. It is not a model input and does not affect any calculation.
 * The model rejects unknown fields (extra fields forbidden) when a client file is loaded.
 
 Derived and fixed rules:
-* joint = spouse DOB is not blank. retired = RETIRED when retirement date is today/past, otherwise PRERET.
+* joint = spouse DOB is not blank. ret_status = RETIRED when retirement date is today/past, otherwise PRERET.
 * discount_rate is a discount factor: 1/(1+hurdle_rate), then raised to the projection-year number.
-* cur_year is the first projection year from Main!B6.
-* Scenario selectors must match columns in tblInflation; mort_table must match mortality-table prefixes.
+* first_proj_year is the first projection year from Main!B6.
+* Scenario selectors must match columns in tblInflation; mortality_table must match mortality-table prefixes.
 * Embedded constants should be centralized in config.py: mortgage remaining payments 12*5; SSI salary basis 3050*12; Roth/IRA/tax/NIIT/fee-tier constants from the LAMBDAs; BD draw 6%; cash reserve 2 months; Roth-limit inflation 3%.
 
 ## 4. Reference tables
@@ -288,6 +289,182 @@ Translate the listed Excel formulas into Python in the phase order above. A blan
 | DI | PV Expenses | Dashboard feed | =BS7+O7 | =BS8+O8 | PV expenses = BS + O. Rows 8-58 consistent. |
 | DJ | PV Income | Dashboard feed | =AE7+AJ7-AQ7+CR7 | =AE8+AJ8-AQ8+CR8 | PV income = AE+AJ-AQ+CR. Rows 8-58 consistent. |
 
+<!-- math:start -->
+### 8.3 Mathematical definitions [v1.2]
+This section restates every projection column of 8.2 as a formula. It is derived from the Excel formulas above and changes no calculation; where the two differ, 8.2 (the workbook) governs. Inputs are written with the Python names of section 3.
+
+**Conventions.** The projection year is $t=1,\dots,N$ (column A), and $Y_t$ is the calendar year (B). A subscript $t-1$ on a balance means the prior row; for $t=1$ it means the opening value in row 5 (written with subscript 0). A blank in Excel is read as zero. $\mathbb{1}[\cdot]$ is 1 when the condition holds and 0 otherwise.
+
+| Symbol | Meaning | Python input or source |
+|---|---|---|
+| $\tau(f)$ | Annualising factor: 12 if $f$ is Monthly, else 1 (TimeFactor) | any `*_freq` input |
+| $\iota$ | Inflation load | `inflation_load` |
+| $c_t$, $\kappa_t$ | Scenario CPI and COLA for year $t$, divided by 100 | `inflation_scenario`, `cola_scenario` columns of tblInflation |
+| $h$, $d$ | Hurdle rate and discount factor, $d=1/(1+h)$ | `hurdle_rate`, `discount_rate` |
+| $\rho$ | Long-term asset return | `lt_return_rate` |
+| $g$ | 401k and cash growth rate | `growth_rate_401k` |
+| $\gamma$, $y$ | Sleeve 3 growth rate and income rate | `sleeve3_growth_rate`, `sleeve3_income_rate` |
+| $\eta$ | Employment risk spread | `employment_risk_spread` |
+| $\delta$, $m$ | Planned IRA draw rate (BD3 = 6%) and cash-reserve months (CG5 = 2) | constants |
+| $r(u)$ | Treasury spot rate at maturity $u$: ordinary least-squares line $\alpha+\beta u$ through the points of 4.2 | TREASURYRATE |
+| $r_E=r_S=r$, $r_W=r+\eta$ | Expense, SSI and employment discount rates | tblDiscountRates |
+| $\mathrm{DF}_X(t)$ | End-year discount factor $\left(1+r_X(t)\right)^{-t}$ | TREASURYDISC |
+| $\mathrm{DM}_X(t)$ | Mid-year discount factor $\left(1+r_X(u_t)\right)^{-u_t}$ with $u_t=\max(0,\,t-0.5)$ | tblDiscountRates |
+| $\mathcal{R}_t(Z;D)$ | Remaining present value of a stream $Z$: $\sum_{k=1}^{N}Z_k$ if $t=1$; $\dfrac{\sum_{k=t}^{N}Z_k}{D_{t-1}}$ if $t>1$ and $D_{t-1}\neq 0$; otherwise 0 | used by P, X, AF, AK, AR, BT |
+
+**Survival.** With $q_x$ the mortality rate at age $x$ and $a_0$ the age at the valuation date, the cumulative survival probability is $p_t=\prod_{j=0}^{t-1}(1-q_{a_0+j})$, and 0 beyond the last table age. For the primary person, $q$ is the employee rate (suffix E) while $j<$ years to retirement and the retiree rate (H healthy or D disabled) afterwards; the spouse uses the healthy retiree rate throughout. The combined survivorship is $I_t=p^{p}_t+p^{s}_t-p^{p}_tp^{s}_t$ (last survivor) when a spouse exists, and $I_t=p^{p}_t$ for a single person.
+
+**Timeline, inflation and expenses**
+
+| Col | Label | Formula |
+|---|---|---|
+| A, B | Number, Year | $t$ ; $Y_t = \text{first\_proj\_year}+t-1$ |
+| C, D | Age p, Age s | age at nearest birthday on 31 December of $Y_t$ |
+| E | Inflation | $E_t = 1+\iota+c_t$ |
+| F | Inflation (cumulative) | $F_t=\prod_{k=1}^{t}E_k$ |
+| G | Expenses (variable) | $G_1=\tau(\text{expenses\_freq})\cdot\text{net\_expenses}\cdot E_1$ ; $G_t=G_{t-1}E_t$ |
+| H | Expenses (fixed) | $H_t=BQ_t$ |
+
+**Survivorship and expense liability**
+
+| Col | Label | Formula |
+|---|---|---|
+| I | Survivorship | $I_t$ as defined above |
+| J | Discount | $J_t=d^{\,t}$ |
+| K | Annuity factor | $K_1=\max(I_1J_1,\,10^{-8})$ ; $K_t=I_tJ_t$ |
+| L | Mid-year discount (expenses) | $L_t=\mathrm{DM}_E(t)$ |
+| M | Mid-year mortality | $M_1=\sqrt{I_1}$ ; $M_t=\sqrt{I_tI_{t-1}}$ |
+| N | Annuity, end year | $N_t=\mathrm{DF}_E(t)\,I_t$ |
+| O | PV expense flow | $O_t=L_t\,G_t\,M_t$ |
+| P | PV expense reserve (liability) | $P_t=\mathcal{R}_t(O;\,N)$ |
+
+**Social Security**
+
+| Col | Label | Formula |
+|---|---|---|
+| Q, R | US COLA, cumulative COLA | $Q_t=1+\kappa_t$ ; $R_t=\prod_{k=1}^{t}Q_k$ |
+| S | Mid-year discount (SSI) | $S_t=\mathrm{DM}_S(t)$ |
+| T | Mid-year mortality (SSI) | $T_t=M_t$ |
+| U | Annuity, end year (SSI) | $U_t=\mathrm{DF}_S(t)\,I_t$ |
+| V | Forecast SSI | $V_t=\mathbb{1}[C_t\ge \text{ssi\_claim\_age}]\cdot \tau(\text{ssi\_pia\_freq})\cdot\text{ssi\_pia}\cdot R_{t-1}$, with $R_0=1$ |
+| W | PV SSI payments | $W_t=V_tS_tT_t$ |
+| X | PV SSI asset | $X_t=\mathcal{R}_t(W;\,U)$ |
+| Y | SSI shortfall | $Y_t=X_t-P_t$ |
+
+**Salary and other earned income**
+
+| Col | Label | Formula |
+|---|---|---|
+| Z | Mid-year discount (employment) | $Z_t=\mathrm{DM}_W(t)$ |
+| AA | Mid-year mortality (employment) | $AA_t=M_t$ |
+| AB | Annuity, end year (employment) | $AB_t=\mathrm{DF}_W(t)\,I_t$ |
+| AG | Salary incurred (WORKINCUR) | $AG_t=\min\!\left(1,\max\!\left(0,\dfrac{D_{\text{ret}}-\mathrm{Jan}_1(Y_t)}{\mathrm{Jan}_1(Y_t+1)-\mathrm{Jan}_1(Y_t)}\right)\right)$, where $D_{\text{ret}}$ is `primary_target_ret_date` |
+| AC | Salary and post-retirement income | $AC_t=\sqrt{Q_t}\cdot\begin{cases}\tau(\text{salary\_freq})\,\text{salary}\,AG_t & t=1,\ AG_1>0\\ AC_{t-1}\,AG_t & t>1,\ AG_t>0\\ \tau(\text{post\_ret\_income\_freq})\,\text{post\_ret\_income} & AG_t=0\end{cases}$ |
+| AD | Supplemental salary | $AD_1=\tau(\text{supp\_salary\_freq})\,\text{supp\_salary}\sqrt{Q_1}$ ; $AD_t=AD_{t-1}\sqrt{Q_t}$ |
+| AE | PV future salary | $AE_t=(AC_t+AD_t)\,AA_t\,Z_t$ |
+| AF | PV salary asset | $AF_t=\mathcal{R}_t(AE;\,AB)$ |
+
+**Investment income (Sleeve 3)**
+
+| Col | Label | Formula |
+|---|---|---|
+| AI | Investment income | $AI_t=y\cdot BK_{t-1}$ |
+| AJ | PV other income | $AJ_t=AI_tS_tT_t$ |
+| AK | PV net investment income | $AK_t=\mathcal{R}_t(AJ;\,K)$, with the zero test applied to $U_{t-1}$ (known issue #3) |
+
+**Tax**
+
+| Col | Label | Formula |
+|---|---|---|
+| AM | AGI | $AM_t=AC_t+AD_t+AI_t+AX_t+BB_t+V_t$ |
+| AN | IRA withdrawal headroom | $AN_t=\min\!\big(AU_{t-1}+AY_{t-1},\ \max(0,\ \lambda_t+\sigma R_t-o_t-\ell_t)\big)$, with $o_t=AC_t+AD_t+AX_t+BB_t+0.2\,AI_t$, $\ell_t=0.8\,AI_t$, $\lambda_t=R_t\cdot$ (first 0% LTCG threshold, 49,450 single or 98,900 joint) and $\sigma=16{,}100$ single or $32{,}200$ joint (IraFill with target 1) |
+| AO | Tax paid | $AO_t=\mathrm{TaxEst}(o'_t,\ \ell_t,\ R_t-1,\ 1)$ with $o'_t=AC_t+AD_t+0.2\,AI_t+BD_t+BE_t+V_t$ |
+| AP | Effective rate | $AP_t=AO_t/AM_t$ |
+| AQ | PV tax payments | $AQ_t=AO_tN_t$ |
+| AR | PV tax liability | $AR_t=\mathcal{R}_t(AQ;\,T)$ |
+
+TaxEst, for ordinary income $o$, long-term gains $\ell$, index factor $\phi=R_t$, standard deduction $s=\sigma\phi$, bracket starts $b_i\phi$ and rates $r_i$ (10% from zero, then the rows of 4.1): total taxable income is $T=\max(0,\,o+\ell-s)$, ordinary taxable income is $T_o=\min\big(T,\ \max(0,\,o-s)\big)$ and taxable gains are $T_g=T-T_o$. Then
+$$\text{Tax}=\sum_i r_i\,\max\!\big(0,\ \min(T_o,\,b_{i+1}\phi)-b_i\phi\big)\;+\;0.15\,G_{15}\;+\;0.20\,G_{20}\;+\;0.038\,\min\!\big(\ell,\ \max(0,\ o+\ell-\theta)\big),$$
+where $G_{15}$ and $G_{20}$ are the parts of $T_g$ above the 0% and 15% LTCG thresholds (inflated by $\phi$), and $\theta$ is the NIIT threshold (250,000 joint, 200,000 single; not inflated).
+
+**Pre-tax accounts and distributions**
+
+| Col | Label | Formula |
+|---|---|---|
+| AT | Pre-tax 401k | $AT_t=AT_{t-1}\cdot\begin{cases}0 & AG_t=0\\ 1+g & AG_t\ne 0\end{cases}$ |
+| AU | Primary traditional IRA | $AU_t=AU_{t-1}(1+\rho)-(BD_t+CM_t)(1+\rho)^{1/2}+\mathbb{1}[AG_t=0]\,AT_{t-1}(1+\rho)^{1-AG_t}$, floored at 0 from $t=2$ |
+| AV, AZ | Age counters | $AV_1=$ completed age at 31 Dec of $Y_1-1$, then $AV_t=AV_{t-1}+1$ (AZ likewise for the spouse) |
+| AW, BA | Withdrawal eligible | $\mathbb{1}[AV_t>59]$ ; $\mathbb{1}[AZ_t>59]$ |
+| AX | Primary RMD | $AX_t=\mathbb{1}[Y_t-\text{birth year}\ge a^*]\cdot AU_{t-1}/F_{\text{LU}}(Y_t-\text{birth year})$, where $a^*$ is 72, 73 or 75 by birth year and $F_{\text{LU}}$ is the table factor (2 from age 120) |
+| AY | Spouse traditional IRA | $AY_t=AY_{t-1}(1+\rho)-BE_t$ |
+| BB | Spouse RMD | as AX, using the spouse's birth year and $AY_{t-1}$ |
+| BD | Primary planned distribution | $BD_t=AX_t+AW_t\max\!\big(0,\ \min(AN_t-AX_t,\ \delta AU_{t-1},\ AU_{t-1})\big)$ |
+| BE | Spouse planned distribution | $BE_t=BB_t+BA_t\max\!\big(0,\ \min(AN_t-BB_t-BD_t,\ \delta AY_{t-1},\ AY_{t-1})\big)$ |
+
+**Post-tax accounts and real assets**
+
+| Col | Label | Formula |
+|---|---|---|
+| BI | Post-tax 401k | $BI_t=BI_{t-1}(1+g)$ |
+| BJ | Roth IRA | $BJ_t=BJ_{t-1}(1+\rho)+(CF_t-CN_t)(1+\rho)^{1/2}$ |
+| BK | Sleeve 3 balance | $BK_t=BK_{t-1}(1+\gamma)-CL_t(1+\gamma)^{1/2}$, with $BK_0=\text{sleeve3\_balance}$ |
+| BL | Cash backdrop | $BL_t=BL_{t-1}(1+g)+(CG_t-CJ_t)(1+g)^{1/2}$, with $BL_0=\text{cash\_cushion\_balance}$ |
+| BM | Taxable accounts | $BM_t=\max\!\big(0,\ BM_{t-1}(1+\rho)+(CH_t-CK_t)(1+\rho)^{1/2}\big)$, with $BM_0=\text{brokerage}+\text{life\_ins}-BK_0-BL_0$ |
+| BN | Real assets | $BN_1=(\text{real\_estate}+\text{other\_PMs})E_1-CO_1$ ; $BN_t=BN_{t-1}E_t-CO_t$ |
+| BV | Total assets (end of year) | $BV_t=AT_t+AU_t+AY_t+BI_t+BJ_t+BK_t+BL_t+BM_t+BN_t$ |
+| BW | NPV of assets | $BW_t=BV_tJ_t$ |
+
+**Mortgage**
+
+With $i=\text{mortgage\_rate}/12$, $n_0=\text{mortgage\_payments\_left}$, principal $P_0=\text{mortgage}$ and monthly payment $\pi=P_0\,i\,/\,(1-(1+i)^{-n_0})$ (BQ5):
+
+| Col | Label | Formula |
+|---|---|---|
+| BP | Balance, end of year | $BP_t=\max\!\Big(0,\ P_0(1+i)^{12t}-\pi\dfrac{(1+i)^{12t}-1}{i}\Big)$ ($P_0-12t\pi$ if $i=0$) |
+| BQ | Annual payments | $BQ_t=12\pi\cdot\mathbb{1}[BP_{t-1}>1]$, with $BP_0=P_0$ |
+| BR | Expense discount | $BR_t=\mathrm{DF}_E(t)$ |
+| BS | PV of payments | $BS_t=BR_t\,BQ_t$ |
+| BT | PV mortgage liability | $BT_t=\mathcal{R}_t(BS;\,BR)$ (row-pattern breaks: known issue #7) |
+
+**Cash flow and the distribution waterfall**
+
+| Col | Label | Formula |
+|---|---|---|
+| BY | Cash income | $BY_t=AC_t+AI_t+BD_t+BE_t+V_t+AD_t$ |
+| BZ, CA | Tax, after-tax income | $BZ_t=AO_t$ ; $CA_t=BY_t-BZ_t$ |
+| CC | Surplus | $CC_t=AK_t+X_t+AF_t-P_t$ |
+| CD | Cash flow | $CD_t=CA_t-G_t-H_t$ |
+| CF | Roth contribution | $CF_t=\max\!\big(0,\ \min(CD_t,\ \mathrm{RothLimit}_t)\big)$ |
+| CG | Cash backdrop top-up | $CG_t=\max\!\big(0,\ \min(CD_t-CF_t,\ (G_t+H_t)\,m/12)\big)$ |
+| CH | Brokerage contribution | $CH_t=\max(CD_t-CF_t-CG_t,\ 0)$ |
+| CJ | Cash distribution | $CJ_t=\min\!\big(-\min(0,CD_t),\ BL_{t-1}\big)$ |
+| CK | Brokerage distribution | $CK_t=\min\!\big(\max(0,\,-(CD_t+CJ_t)),\ BM_{t-1}\big)$ |
+| CL | Sleeve 3 distribution | $CL_t=\min\!\big(\max(0,\,-(CJ_t+CK_t+CD_t)),\ BK_{t-1}\big)$ |
+| CM | Traditional IRA distribution | $CM_t=\min\!\big(\max(0,\,-(CJ_t+CK_t+CD_t+CL_t)),\ AU_{t-1}+AY_{t-1}\big)$ |
+| CN | Roth distribution | $CN_t=\min\!\big(\max(0,\,-(CJ_t+CK_t+CD_t+CM_t+CL_t)),\ BJ_{t-1}\big)$ |
+| CO | Real-asset distribution | $CO_t=\min\!\big(\max(0,\,-(CJ_t+CK_t+CD_t+CM_t+CL_t+CN_t)),\ BN_{t-1}\big)$ |
+| CQ, CR | Total distributions, PV | $CQ_t=CJ_t+CK_t+CL_t+CM_t+CN_t+CO_t$ ; $CR_t=CQ_tL_t$ |
+
+The Roth limit uses $f=1.03^{\,t}$ and the same-year AGI $I_{\text{inc}}=AM_t$. For each person of age $a$, the limit is $L_a=\max(7500,\lfloor 7500f\rfloor_{500})+\mathbb{1}[a\ge 50]\max(1100,\lfloor 1100f\rfloor_{100})$, with $\lfloor\cdot\rfloor_k$ rounding down to a multiple of $k$. Let $lo=\max(M,\lfloor Mf\rfloor_{1000})$ with $M=242{,}000$ joint or $153{,}000$ single, $rg=\max(R,\lfloor Rf\rfloor_{1000})$ with $R=10{,}000$ joint or $15{,}000$ single, and $hi=lo+rg$. Then
+$$\mathrm{amt}(a)=\begin{cases}L_a & I_{\text{inc}}\le lo\\ 0 & I_{\text{inc}}\ge hi\\ \min\!\Big(L_a,\ \max\!\big(200,\ \lceil L_a(hi-I_{\text{inc}})/rg\rceil_{10}\big)\Big) & \text{otherwise}\end{cases}$$
+and $\mathrm{RothLimit}_t=\min\!\big(\mathrm{amt}(C_t)+\mathbb{1}[\text{joint}]\,\mathrm{amt}(D_t),\ \max(AM_t,0)\big)$.
+
+**Dashboard feed and summary**
+
+| Col | Label | Formula |
+|---|---|---|
+| CW | Year | $CW_t=Y_t$ for $t\le N$, otherwise 0 |
+| CX, CY, CZ, DA | Net cash flow, SSI, NII and salary assets | $CD_t$ ; $X_t$ ; $AK_t$ ; $AF_t$ (0 beyond $N$) |
+| DB | Pre-tax balances | $DB_t=AU_{t-1}+AY_{t-1}$ |
+| DC | Post-tax balances | $DC_t=BJ_{t-1}+BK_{t-1}+BL_{t-1}+BM_{t-1}+BI_{t-1}$ |
+| DD | Real assets | $DD_t=BN_{t-1}$ |
+| DE, DF, DG | Debt, expense liability, total liabilities | $BT_t$ ; $P_t$ ; $DG_t=DE_t+DF_t$ |
+| DH | Total assets | $DH_t=CY_t+DA_t+DB_t+DC_t+DD_t$ |
+| DI, DJ | PV expenses, PV income | $DI_t=BS_t+O_t$ ; $DJ_t=AE_t+AJ_t-AQ_t+CR_t$ |
+
+Summary cells: $C1=X_1+AK_1+BW_1$ (assets), $C2=P_1$ (liabilities), $C3=C1-C2$ (surplus), funding ratio $=C1/C2$, $F2=$ the sum of the opening balances $AT_0+AU_0+AY_0+BI_0+BJ_0+BK_0+BL_0+BM_0+BN_0$, and $F3=\sum_t AQ_t+BP_0$.
+<!-- math:end -->
+
 ## 9. Named LAMBDA functions — LIVE from Model Spec
 Create a snake_case Python function for each item below. LET means local variables; SEQUENCE means numpy.arange; VSTACK/DROP/TAKE mean concatenate/slice; SWITCH and IFS are ordered branches; ISOMITTED is an optional parameter. Preserve Excel array broadcasting.
 ### AGENEAREST (In use)
@@ -462,7 +639,7 @@ For open/partly resolved items, match the current Excel formulas for parity, iso
 * #12 Main: [Partly resolved] Formula errors — Partly resolved: the Main!M7:N7 and M12:N12 #N/A errors are cleared (now returning fees and fee %), and Main!A63 and Calc!B2:B9 now display the Treasury names (linked data type cells). Still open: Calc!G2:G65 shows #VALUE! because each cell calls TREASURYDISC with a single argument (=TREASURYDISC(F2)) instead of t, yrs, rates.
 * #13 Main!B64: [Design decision] discount_rate stores a factor — Accepted design decision: discount_rate (Main!B64, = 1/(1+hurdle_rate) = 0.952) intentionally stores a discount factor, applied as discount_rate^year in Projection!J. The name is kept as is; no action required.
 * #14 Projection: [Resolved] Hard-coded year-1 SSI flag — Resolved: the V2 flag has been removed (Projection!V2 is now blank).
-* #15 InflationLoad default: [Open] Section 3 and the model default are 0.025, but the repository parity fixtures expect 0.0125, which makes inputs read from the workbook differ from the model defaults and shifts every phase 2 to 6 parity test (for example the headline reserve). Decide the authoritative value, then align the model default, the workbook and the regenerated fixtures. [v1.1]
+* #15 inflation_load default: [Open] Section 3 and the model default are 0.025, but the repository parity fixtures expect 0.0125, which makes inputs read from the workbook differ from the model defaults and shifts every phase 2 to 6 parity test (for example the headline reserve). Decide the authoritative value, then align the model default, the workbook and the regenerated fixtures. [v1.1]
 * #16 IAM2012 mortality: [Partly resolved] The column helper exists and handles single-column tables, but project_mortality_rp must still be changed to call it before IAM2012 can be offered. IAM2012 is therefore withheld from the dropdown. [v1.1]
 * #17 Acceptance values and fixtures: [Open] Section 11 values are dated 2026-11-06; fixtures used by the repository tests come from an earlier export. Regenerate both from one workbook state and one as_of_date before using them as release gates. The report test that expects the placeholder firm name "Acme Advisors" must be updated to the branded name. [v1.1]
 
@@ -507,6 +684,8 @@ Run Python with that as_of_date and the defaults in section 3. Tolerance: relati
 
 ## 13. Export and maintenance notes
 * [v1.1] Section 14 and the items marked [v1.1] are not produced by the workbook export. Copy them forward when regenerating this document.
+* [v1.2] Section 8.3 (mathematical definitions) is maintained by hand and is not regenerated from the workbook; carry it forward and re-check it against 8.2 whenever the formulas change.
+* [v1.2] The Python-name column in section 3 and section 14.7 are generated from model/input_names.json by scripts/update_spec_names.py; they are not produced by the workbook export. Re-run the script after regenerating this document.
 * Preferred handoff: upload this .xlsx workbook to Perplexity and point it to the Python App Spec sheet. Alternatively, copy column A into a UTF-8 .md or .txt file.
 * Avoid CSV export for this document because cells containing quotes may be doubled or wrapped.
 * Live references depend on TODAY(). Model Spec row references are fixed; regenerate this sheet if rows are inserted/deleted in Model Spec.
@@ -538,9 +717,9 @@ These requirements describe the Streamlit application built on the engine. They 
 Sliders never change the client's saved inputs; they apply a temporary copy for the run, and a banner states what is overridden. "Reset sliders" restores all of them.
 | Slider | Range | Step | Default | Effect |
 |---|---|---|---|---|
-| Primary retirement | -60 to +60 months | 1 | 0 | Shifts t_ret_date |
-| Spouse retirement (joint only) | -60 to +60 months | 1 | 0 | Shifts t_s_ret_date |
-| Advisor rate of return | 0% to 15% (widened to include the client's own rate) | 0.25% | client LTRoR | Overrides LTRoR; asset side only |
+| Primary retirement | -60 to +60 months | 1 | 0 | Shifts primary_target_ret_date |
+| Spouse retirement (joint only) | -60 to +60 months | 1 | 0 | Shifts spouse_target_ret_date |
+| Advisor rate of return | 0% to 15% (widened to include the client's own rate) | 0.25% | client lt_return_rate | Overrides lt_return_rate; asset side only |
 | Disposable income [v1.1] | -5% to +25% | 0.5% | 0% | net_expenses x (1 + value) |
 Disposable income scales only net_expenses; cash cushion and mortgage payments are unchanged. A positive value means more spending and therefore less cash left over. The slider shows the resulting net expenses beside the client's figure, and the scenario banner reads, for example, "disposable income +10.0% (net expenses $5,500 vs client $5,000)". It combines with the other sliders.
 
@@ -557,3 +736,56 @@ Disposable income scales only net_expenses; cash cushion and mortgage payments a
 ### 14.6 Test notes
 * Expected updates: the mortality-options tests expect only RP-2014 while IAM2012 is withheld; the dashboard report test must expect the branded firm name rather than "Acme Advisors".
 * The workbook parity tests are blocked by known issues #15 and #17.
+
+<!-- names:start -->
+### 14.7 Input naming convention [v1.2]
+Input names in Python, JSON client files, the UI and tests follow one standard. The Excel workbook keeps its own defined names, so sections 8 to 11 (formulas, LAMBDAs and acceptance values) still use them. Section 3 shows both names side by side.
+* snake_case throughout; people are prefixed `primary_` and `spouse_`; frequency flags end in `_freq`; rates end in `_rate`.
+* The mapping below is held in one file, `model/input_names.json`. It is the single source of truth for the application, the rename tool, the legacy-file migration and this table.
+* Client files saved under the old names still load: `migrate_inputs()` (model/legacy_names.py) renames the keys on import. New files are written with the new names. Unknown fields are still rejected.
+* Inputs not listed below keep their original names (for example salary, mortgage, brokerage, hurdle_rate). `discount_rate` is intentionally unchanged (known issue #13).
+* Workbook parity code translates workbook defined names to the Python names with the same helper.
+
+| Legacy / workbook name | Python name |
+|---|---|
+| p_dob | primary_dob |
+| s_dob | spouse_dob |
+| t_ret_date | primary_target_ret_date |
+| t_s_ret_date | spouse_target_ret_date |
+| retired | ret_status |
+| disabled | primary_disabled |
+| cur_year | first_proj_year |
+| mort_table | mortality_table |
+| sup_salary | supp_salary |
+| net_income | post_ret_income |
+| inc_tax_status | income_tax_status |
+| spread_emprisk | employment_risk_spread |
+| cash_cushion | cash_cushion_months |
+| cash_cushion_amt | cash_cushion_balance |
+| t_salary | salary_freq |
+| t_expenses | expenses_freq |
+| t_SSI_PIA | ssi_pia_freq |
+| t_income | post_ret_income_freq |
+| t_sup_salary | supp_salary_freq |
+| t_sup_income | sleeve3_payment_freq |
+| t_cashcush | cash_cushion_freq |
+| pre_401k | pretax_401k |
+| post_401k | roth_401k |
+| pre_IRA | primary_trad_ira |
+| s_pre_IRA | spouse_trad_ira |
+| roth_IRA | roth_ira |
+| mort_rate | mortgage_rate |
+| mort_payments | mortgage_payments_left |
+| SSI_ret_age | ssi_claim_age |
+| SSI_PIA | ssi_pia |
+| sup_income | sleeve3_payment |
+| sleeve3_ror | sleeve3_income_rate |
+| sup_inc_irr | sleeve3_growth_rate |
+| sleeve3_deployed | sleeve3_balance |
+| LTRoR | lt_return_rate |
+| growth_rt_401k | growth_rate_401k |
+| contrib_rt_401k | contrib_rate_401k |
+| InflationScenario | inflation_scenario |
+| InflationLoad | inflation_load |
+| COLAScenario | cola_scenario |
+<!-- names:end -->

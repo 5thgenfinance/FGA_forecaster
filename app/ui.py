@@ -27,6 +27,7 @@ from app.scenario_ui import render_scenario
 from app.shell import current_view, settings_page
 from app.sidebar_theme import apply_sidebar_theme
 from app.ui_helpers import LABELS, form_to_inputs, to_form_values
+from app.help_page import render_help_sidebar
 from model import branding as B
 from model import table_store as TS
 from model.dashboard import Brand, build_figures, build_report_data, fmt_money, fmt_pct
@@ -71,6 +72,7 @@ def main():
 
     st.sidebar.image(str(B.logo_path("ribbon", dark_surface=True)), use_container_width=True)
     st.sidebar.title("Inputs")
+    render_help_sidebar()
     as_of = st.sidebar.date_input("Valuation date", value=date.today(), key="as_of")
     scen_box = st.sidebar.container()
     side, slots = {}, {}
