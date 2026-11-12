@@ -1,0 +1,41 @@
+# --- Python ---
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+.env
+build/
+dist/
+*.egg-info/
+
+# --- Test, lint and coverage caches ---
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+.coverage
+.coverage.*
+htmlcov/
+
+# --- Streamlit ---
+.streamlit/secrets.toml
+
+# --- Client data and app output (never commit real clients) ---
+/clients/
+/data_user/
+/output/
+/results/
+/*_inputs.json
+!tests/**/*.json
+
+# --- Backups and scratch files ---
+*.bak
+*.log
+/*.zip
+/scratch/
+
+# --- Editors and Windows ---
+.vscode/
+.idea/
+~$*.xlsx
+Thumbs.db
+Desktop.ini
