@@ -9,74 +9,74 @@ Freq = Literal["Monthly", "Yearly"]
 class ProjectionInputs(BaseModel):
     model_config = {"extra": "forbid"}
     # personal
-    p_dob: date = date(1969, 3, 28)
-    s_dob: Optional[date] = date(1971, 1, 1)        # None => single
-    cur_year: int = 2027
-    t_ret_date: date = date(2029, 3, 28)
-    t_s_ret_date: Optional[date] = date(2034, 3, 28)
-    retired: Literal["PRERET", "RETIRED"] = "PRERET"
+    primary_dob: date = date(1969, 3, 28)
+    spouse_dob: Optional[date] = date(1971, 1, 1)        # None => single
+    first_proj_year: int = 2027
+    primary_target_ret_date: date = date(2029, 3, 28)
+    spouse_target_ret_date: Optional[date] = date(2034, 3, 28)
+    ret_status: Literal["PRERET", "RETIRED"] = "PRERET"
     p_gender: Literal["M", "F"] = "M"
-    disabled: bool = False
-    mort_table: str = "RP-2014"
+    primary_disabled: bool = False
+    mortality_table: str = "RP-2014"
     # income / expenses
     salary: float = Field(110_000, ge=0)
-    sup_salary: float = Field(0, ge=0)
-    inc_tax_status: str = "PRE"
-    spread_emprisk: float = 0.015
-    net_income: float = Field(0, ge=0)
+    supp_salary: float = Field(0, ge=0)
+    income_tax_status: Literal["PRE", "POST"] = "PRE"
+    employment_risk_spread: float = 0.015
+    post_ret_income: float = Field(0, ge=0)
     net_expenses: float = Field(5_000, ge=0)
-    cash_cushion: float = 5
-    cash_cushion_amt: float = Field(25_000, ge=0)
-    InflationScenario: str = "CPI70"
-    InflationLoad: float = 0.025
-    COLAScenario: str = "COLA70"
+    cash_cushion_months: float = 5
+    cash_cushion_balance: float = Field(25_000, ge=0)
+    inflation_scenario: str = "CPI70"
+    inflation_load: float = 0.025
+    cola_scenario: str = "COLA70"
     # accounts
-    pre_401k: float = Field(47_000, ge=0)
-    post_401k: float = Field(0, ge=0)
-    pre_IRA: float = Field(300_000, ge=0)
-    s_pre_IRA: float = Field(0, ge=0)
-    roth_IRA: float = Field(150_000, ge=0)
+    pretax_401k: float = Field(47_000, ge=0)
+    roth_401k: float = Field(0, ge=0)
+    primary_trad_ira: float = Field(300_000, ge=0)
+    spouse_trad_ira: float = Field(0, ge=0)
+    roth_ira: float = Field(150_000, ge=0)
     brokerage: float = Field(300_000, ge=0)
     life_ins: float = Field(0, ge=0)
     real_estate: float = Field(400_000, ge=0)
     other_PMs: float = Field(0, ge=0)
     # mortgage
     mortgage: float = Field(150_000, ge=0)
-    mort_rate: float = Field(0.03, ge=0, le=0.5)
-    mort_payments: int = Field(60, ge=0)
+    mortgage_rate: float = Field(0.03, ge=0, le=0.5)
+    mortgage_payments_left: int = Field(60, ge=0)
     # SSI
-    SSI_ret_age: int = Field(67, ge=62, le=70)
-    SSI_PIA: float = Field(3_050, ge=0)
+    ssi_claim_age: int = Field(67, ge=62, le=70)
+    ssi_pia: float = Field(3_050, ge=0)
     # sleeve 3
-    sup_income: float = 2_000
-    sleeve3_ror: float = 0.14
-    sup_inc_irr: float = 0.04
-    sleeve3_deployed: float = Field(200_000, ge=0)   # Main!B55
+    sleeve3_payment: float = 2_000
+    sleeve3_income_rate: float = 0.14
+    sleeve3_growth_rate: float = 0.04
+    sleeve3_balance: float = Field(200_000, ge=0)   # Main!B55
     # rates
     hurdle_rate: float = Field(0.05, gt=-0.5, lt=1)
-    LTRoR: float = 0.125
-    growth_rt_401k: float = 0.035
-    contrib_rt_401k: float = 0.14
+    lt_return_rate: float = 0.125
+    growth_rate_401k: float = 0.035
+    contrib_rate_401k: float = 0.14
     # frequency flags (Main column C)
-    t_expenses: Freq = "Monthly"
-    t_salary: Freq = "Yearly"
-    t_income: Freq = "Monthly"
-    t_sup_salary: Freq = "Yearly"
-    t_sup_income: Freq = "Monthly"
-    t_SSI_PIA: Freq = "Monthly"
-    t_cashcush: Freq = "Monthly"
+    expenses_freq: Freq = "Monthly"
+    salary_freq: Freq = "Yearly"
+    post_ret_income_freq: Freq = "Monthly"
+    supp_salary_freq: Freq = "Yearly"
+    sleeve3_payment_freq: Freq = "Monthly"
+    ssi_pia_freq: Freq = "Monthly"
+    cash_cushion_freq: Freq = "Monthly"
 
     @model_validator(mode="after")
     def _checks(self):
-        if self.s_dob is not None and not (1900 < self.s_dob.year < 2100):
-            raise ValueError("s_dob out of range")
-        if self.t_ret_date < self.p_dob:
-            raise ValueError("t_ret_date precedes p_dob")
+        if self.spouse_dob is not None and not (1900 < self.spouse_dob.year < 2100):
+            raise ValueError("Spouse DOB out of range")
+        if self.primary_target_ret_date < self.primary_dob:
+            raise ValueError("primary retirement date precedes dob")
         return self
 
     @property
     def joint(self) -> bool:
-        return self.s_dob is not None
+        return self.spouse_dob is not None
 
     @property
     def discount_rate(self) -> float:

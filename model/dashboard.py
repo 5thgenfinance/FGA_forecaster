@@ -102,10 +102,10 @@ def compute_kpis(df: pd.DataFrame, summary: dict, inputs: ProjectionInputs) -> d
     return {
         "funding_ratio": summary["funding_ratio"], "surplus": summary["surplus_C3"],
         "resources_pv": summary["act_assets_C1"], "need_pv": summary["act_liabilities_C2"],
-        "retirement_year": inputs.t_ret_date.year,
-        "retirement_age": int(inputs.t_ret_date.year - inputs.p_dob.year),
+        "retirement_year": inputs.primary_target_ret_date.year,
+        "retirement_age": int(inputs.primary_target_ret_date.year - inputs.primary_dob.year),
         "ssi_start_year": int(ssi.iloc[0]) if len(ssi) else None,
-        "ssi_start_age": inputs.SSI_ret_age,
+        "ssi_start_age": inputs.ssi_claim_age,
         "peak_assets": float(df["DH"].iloc[peak_i]), "peak_asset_year": int(df["B"].iloc[peak_i]),
         "first_unfunded_year": unf, "funded_through_year": funded_through,
         "funded_through_age": _age_in_year(df, funded_through), "fully_funded": unf is None,

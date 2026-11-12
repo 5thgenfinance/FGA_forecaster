@@ -6,7 +6,7 @@ from app import client_io
 from app.ui_helpers import HELP, INPUT_GROUPS, LABELS, PCT_FIELDS, choices, field_kind, form_to_inputs
 
 CLIENT_GROUPS: dict[str, list[str]] = {
-    "Personal": [f for f in INPUT_GROUPS["Personal"] if f != "mort_table"],
+    "Personal": [f for f in INPUT_GROUPS["Personal"] if f != "mortality_table"],
     "Income": INPUT_GROUPS["Income"],
     "Expenses": INPUT_GROUPS["Expenses"],
     "Accounts": INPUT_GROUPS["Accounts"],
@@ -16,7 +16,7 @@ CLIENT_FIELDS = [f for fs in CLIENT_GROUPS.values() for f in fs]
 SIDEBAR_GROUPS = {("Mortality" if g == "Personal" else g): ([f for f in fs if f not in set(CLIENT_FIELDS)])
                   for g, fs in INPUT_GROUPS.items() if g not in CLIENT_GROUPS or g == "Personal"}
 SIDEBAR_GROUPS = {g: fs for g, fs in SIDEBAR_GROUPS.items() if fs}
-SPOUSE_ONLY = ("s_dob", "t_s_ret_date")
+SPOUSE_ONLY = ("spouse_dob", "spouse_target_ret_date")
 
 
 def widget(name: str, default, key: str):
@@ -97,6 +97,7 @@ def client_page(store: dict, sidebar_values: dict, valuation_date: date) -> None
                 c1.warning("Fix the highlighted inputs before exporting.")
         with c2:
             n = st.session_state.setdefault("upload_n", 0)
+            c2.caption("Drag a client .json file onto the box below, or click Browse.")
             up = c2.file_uploader("Import client file (JSON)", type=["json"], key=f"cd_upload_{n}")
             if up is not None:
                 res = client_io.parse_import(up.getvalue())

@@ -1,0 +1,7 @@
+{
+  "description": "Advisor return slider at 8 percent",
+  "as_of": "2026-11-06",
+  "inputs": {
+    "lt_return_rate": 0.08
+  }
+}

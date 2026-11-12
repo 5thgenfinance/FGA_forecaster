@@ -1,0 +1,8 @@
+{
+  "description": "Single person, no spouse",
+  "as_of": "2026-11-06",
+  "inputs": {
+    "spouse_dob": null,
+    "spouse_target_ret_date": null
+  }
+}

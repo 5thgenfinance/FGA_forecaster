@@ -51,38 +51,38 @@ def default_sweeps() -> list[Sweep]:
     S = []
     S.append(Sweep("baseline", "baseline"))
     # retirement timing
-    S.append(Sweep("retire_2yrs_later", "retirement date", {"t_ret_date": date(2031, 3, 28)}, expect=_gt("AF"), note="more salary years -> larger salary asset"))
-    S.append(Sweep("retire_1yr_earlier", "retirement date", {"t_ret_date": date(2028, 3, 28)}, expect=_lt("AF")))
+    S.append(Sweep("retire_2yrs_later", "retirement date", {"primary_target_ret_date": date(2031, 3, 28)}, expect=_gt("AF"), note="more salary years -> larger salary asset"))
+    S.append(Sweep("retire_1yr_earlier", "retirement date", {"primary_target_ret_date": date(2028, 3, 28)}, expect=_lt("AF")))
     # social security election age (PIA held constant -> benefit is NOT scaled for claiming age)
     for age in (62, 70):
-        S.append(Sweep(f"ssi_age_{age}", "social security", {"SSI_ret_age": age},
+        S.append(Sweep(f"ssi_age_{age}", "social security", {"ssi_claim_age": age},
                        expect=_gt("X") if age == 62 else _lt("X"),
                        note="SSI_PIA is not adjusted for claiming age; change it per election age"))
-    S.append(Sweep("ssi_pia_plus_20pct", "social security", {"SSI_PIA": 3660}, expect=_gt("X")))
+    S.append(Sweep("ssi_pia_plus_20pct", "social security", {"ssi_pia": 3660}, expect=_gt("X")))
     # household
-    S.append(Sweep("single_person", "household", {"s_dob": None, "t_s_ret_date": None}, expect=_lt("P"), note="single life < last-survivor of a couple"))
-    S.append(Sweep("primary_disabled", "household", {"disabled": True}, expect=_lt("P")))
+    S.append(Sweep("single_person", "household", {"spouse_dob": None, "spouse_target_ret_date": None}, expect=_lt("P"), note="single life < last-survivor of a couple"))
+    S.append(Sweep("primary_disabled", "household", {"primary_disabled": True}, expect=_lt("P")))
     S.append(Sweep("primary_female", "household", {"p_gender": "F"}))
-    S.append(Sweep("already_retired", "household", {"retired": "RETIRED", "t_ret_date": date(2026, 1, 1), "salary": 0, "pre_401k": 0}))
+    S.append(Sweep("already_retired", "household", {"ret_status": "RETIRED", "primary_target_ret_date": date(2026, 1, 1), "salary": 0, "pretax_401k": 0}))
     # spending and frequency flags
     S.append(Sweep("expenses_plus_20pct", "spending", {"net_expenses": 6000}, expect=_all(_ratio("P", 1.2), _sum_lt("funding_ratio"))))
-    S.append(Sweep("expenses_flag_yearly", "spending", {"t_expenses": "Yearly"}, expect=_ratio("G", 1 / 12)))
+    S.append(Sweep("expenses_flag_yearly", "spending", {"expenses_freq": "Yearly"}, expect=_ratio("G", 1 / 12)))
     S.append(Sweep("no_mortgage", "spending", {"mortgage": 0}, expect=_same("P")))
-    S.append(Sweep("long_mortgage_360", "spending", {"mort_payments": 360}, expect=_gt("H", 10)))
+    S.append(Sweep("long_mortgage_360", "spending", {"mortgage_payments_left": 360}, expect=_gt("H", 10)))
     # rates and curves
     S.append(Sweep("curve_plus_100bp", "discount curve", curve_shift_bp=100, expect=_all(_sum_lt("act_liabilities_C2"), _sum_lt("act_assets_C1"))))
     S.append(Sweep("curve_minus_100bp", "discount curve", curve_shift_bp=-100, expect=_all(_sum_gt("act_liabilities_C2"))))
     S.append(Sweep("hurdle_3pct", "discount curve", {"hurdle_rate": 0.03}, expect=_same("P"), note="hurdle only drives J/K (AK, BW); the liability P uses the curve"))
     S.append(Sweep("hurdle_8pct", "discount curve", {"hurdle_rate": 0.08}, expect=_same("P")))
     # inflation
-    S.append(Sweep("inflation_load_plus_1pt", "inflation", {"InflationLoad": 0.035}, expect=_all(_gt("P"), _sum_lt("funding_ratio"))))
+    S.append(Sweep("inflation_load_plus_1pt", "inflation", {"inflation_load": 0.035}, expect=_all(_gt("P"), _sum_lt("funding_ratio"))))
     for cpi, cola in (("CPI_74", "COLA_74"), ("Hist52", "Hist52"), ("CAGR30", "CAGR30")):
-        S.append(Sweep(f"inflation_{cpi}", "inflation", {"InflationScenario": cpi, "COLAScenario": cola}, inflation_pair=(cpi, cola)))
+        S.append(Sweep(f"inflation_{cpi}", "inflation", {"inflation_scenario": cpi, "cola_scenario": cola}, inflation_pair=(cpi, cola)))
     # policy parameters
     S.append(Sweep("ira_draw_0pct", "policy", kwargs={"draw_pct": 0.0}))
     S.append(Sweep("ira_draw_10pct", "policy", kwargs={"draw_pct": 0.10}))
     S.append(Sweep("cash_reserve_6mo", "policy", kwargs={"cash_months": 6}))
-    S.append(Sweep("zero_assets_retire_now", "stress", {"pre_401k": 0, "pre_IRA": 0, "roth_IRA": 0, "brokerage": 225000, "real_estate": 0}))
+    S.append(Sweep("zero_assets_retire_now", "stress", {"pretax_401k": 0, "primary_trad_ira": 0, "roth_ira": 0, "brokerage": 225000, "real_estate": 0}))
     return S
 
 def run_sweeps(tables: ModelTables, ft: ForwardTables, as_of: date, sweeps: list[Sweep] | None = None) -> pd.DataFrame:

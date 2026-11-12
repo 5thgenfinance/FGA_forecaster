@@ -110,8 +110,8 @@ def test_higher_discount_rates_reduce_liabilities_and_assets_pv(tables, ft):
     assert hi["curve_id"] != base["curve_id"]
 
 def test_inflation_shift_hurts_funding_ratio(tables, ft):
-    lo = run_projection(ProjectionInputs(), tables, ft, ASOF, inflation=InflationScenario.constant(0.02, 0.02))[1]
-    hi = run_projection(ProjectionInputs(), tables, ft, ASOF, inflation=InflationScenario.constant(0.04, 0.02))[1]
+    lo = run_projection(ProjectionInputs(), tables, ft, ASOF, inflation=inflation_scenario.constant(0.02, 0.02))[1]
+    hi = run_projection(ProjectionInputs(), tables, ft, ASOF, inflation=inflation_scenario.constant(0.04, 0.02))[1]
     assert hi["funding_ratio"] < lo["funding_ratio"]
     assert hi["inflation_id"] == "constant"
 
@@ -128,7 +128,7 @@ def test_focus_year_errors(run):
 
 # ---- variants ----
 def test_single_person_projection(tables, ft):
-    df, s = run_projection(ProjectionInputs(s_dob=None, t_s_ret_date=None), tables, ft, ASOF)
+    df, s = run_projection(ProjectionInputs(spouse_dob=None, spouse_target_ret_date=None), tables, ft, ASOF)
     assert np.isfinite(s["funding_ratio"]) and (df["DH"].dropna() >= 0).all()
 
 def test_well_funded_plan_has_no_unfunded_years(tables, ft):

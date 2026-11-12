@@ -104,7 +104,7 @@ def test_forward_nominal_columns_independent_of_discount_curve(tables, ft):
 
 def test_inflation_scenario_changes_cash_flow(tables, ft):
     a, _ = run_through_phase3(ProjectionInputs(), tables, ft, ASOF)
-    b, _ = run_through_phase3(ProjectionInputs(), tables, ft, ASOF, inflation=InflationScenario.constant(0.06, 0.02))
+    b, _ = run_through_phase3(ProjectionInputs(), tables, ft, ASOF, inflation=inflation_scenario.constant(0.06, 0.02))
     assert not np.allclose(a["CD"], b["CD"])
     assert b["G"].iloc[-1] > a["G"].iloc[-1] * 0 + 0
 
@@ -116,12 +116,12 @@ def test_draw_pct_parameter(tables, ft):
 
 # ---- variants ----
 def test_single_person(tables, ft):
-    df, _ = run_through_phase3(ProjectionInputs(s_dob=None, t_s_ret_date=None), tables, ft, ASOF)
+    df, _ = run_through_phase3(ProjectionInputs(spouse_dob=None, spouse_target_ret_date=None), tables, ft, ASOF)
     assert (df["BE"] == 0).all() and (df["AY"] == 0).all() and (df["BB"] == 0).all() and df["AZ"].isna().all()
     assert np.isfinite(df[["AM", "AO", "BV", "CD"]].to_numpy()).all()
 
 def test_already_retired(tables, ft):
-    inp = ProjectionInputs(retired="RETIRED", t_ret_date=date(2026, 1, 1), salary=0, pre_401k=0)
+    inp = ProjectionInputs(ret_status="RETIRED", primary_target_ret_date=date(2026, 1, 1), salary=0, pretax_401k=0)
     df, _ = run_through_phase3(inp, tables, ft, ASOF)
     assert (df["AG"] == 0).all() and (df["AT"] == 0).all()
 
@@ -132,6 +132,6 @@ def test_rmds_start_at_age_75_for_1969_birth(run):
     assert df.loc[:first - 1, "AX"].eq(0).all()
 
 def test_zero_assets_no_negative_balances(tables, ft):
-    inp = ProjectionInputs(pre_401k=0, pre_IRA=0, roth_IRA=0, brokerage=225000, real_estate=0, mortgage=0)
+    inp = ProjectionInputs(pretax_401k=0, primary_trad_ira=0, roth_ira=0, brokerage=225000, real_estate=0, mortgage=0)
     df, _ = run_through_phase3(inp, tables, ft, ASOF)
     assert (df[["AU", "BJ", "BK", "BL", "BM", "BN"]] >= -1e-9).all().all()

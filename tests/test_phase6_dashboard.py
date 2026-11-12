@@ -142,7 +142,7 @@ def test_assumptions_table_lists_scenarios(rd):
     assert rows["Valuation date"] == "2026-11-03" and rows["Household"] == "Two people"
 
 def test_single_person_and_well_funded_reports(tables, ft):
-    one = build_report_data(ProjectionInputs(s_dob=None, t_s_ret_date=None), tables, ft, ASOF)
+    one = build_report_data(ProjectionInputs(spouse_dob=None, spouse_target_ret_date=None), tables, ft, ASOF)
     assert "One person" in build_html(one, build_figures(one))
     rich = build_report_data(ProjectionInputs(net_expenses=2000, brokerage=2_000_000), tables, ft, ASOF)
     h = build_html(rich, build_figures(rich)); assert "Beyond age 100" in h
@@ -172,13 +172,13 @@ def test_cli_reads_inputs_file_and_yaml(tmp_path):
     assert run_cli(tmp_path, inputs=p) == 0
     assert json.loads((tmp_path / "out" / "summary.json").read_text())["inputs"]["net_expenses"] == 6000
     y = tmp_path / "in.yaml"; y.write_text("net_expenses: 4000\nSSI_ret_age: 70\n")
-    assert load_inputs(str(y)).SSI_ret_age == 70
+    assert load_inputs(str(y)).ssi_claim_age == 70
 
 def test_cli_invalid_inputs_exit_2_with_field_names(tmp_path, capsys):
-    p = tmp_path / "bad.json"; p.write_text(json.dumps({"SSI_ret_age": 50, "salary": -1, "bogus": 1}))
+    p = tmp_path / "bad.json"; p.write_text(json.dumps({"ssi_claim_age": 50, "salary": -1, "bogus": 1}))
     assert run_cli(tmp_path, inputs=p) == 2
     err = capsys.readouterr().err
-    assert "SSI_ret_age" in err and "salary" in err and "bogus" in err
+    assert "ssi_claim_age" in err and "salary" in err and "bogus" in err
     assert not (tmp_path / "out" / "report.html").exists()
 
 def test_cli_missing_or_broken_inputs_exit_3(tmp_path, capsys):
@@ -193,7 +193,7 @@ def test_cli_bad_brand_file_exit_3(tmp_path):
     assert run_cli(tmp_path, "--brand", str(b)) == 3
 
 def test_format_validation_error():
-    with pytest.raises(Exception) as ei: ProjectionInputs(SSI_ret_age=50)
+    with pytest.raises(Exception) as ei: ProjectionInputs(ssi_claim_age=50)
     assert any(l.startswith("SSI_ret_age:") for l in format_validation_error(ei.value))
 
 # ---- optional image / PDF export (needs kaleido + Chrome) ----
@@ -219,16 +219,16 @@ def test_cli_png_pdf_flags(tmp_path):
 # ---- UI helpers ----
 def test_form_round_trip():
     vals = to_form_values(ProjectionInputs())
-    assert vals["LTRoR"] == pytest.approx(12.5) and vals["include_spouse"] is True
+    assert vals["lt_return_rate"] == pytest.approx(12.5) and vals["include_spouse"] is True
     inp, err = form_to_inputs(vals)
     assert err == {} and inp == ProjectionInputs()
 
 def test_form_spouse_toggle_and_errors():
     vals = to_form_values(ProjectionInputs()); vals["include_spouse"] = False
-    inp, err = form_to_inputs(vals); assert err == {} and inp.s_dob is None and not inp.joint
-    vals["SSI_ret_age"] = 50; vals["salary"] = -5
+    inp, err = form_to_inputs(vals); assert err == {} and inp.spouse_dob is None and not inp.joint
+    vals["ssi_claim_age"] = 50; vals["salary"] = -5
     inp, err = form_to_inputs(vals)
-    assert inp is None and {"SSI_ret_age", "salary"} <= set(err)
+    assert inp is None and {"ssi_claim_age", "salary"} <= set(err)
 
 def test_every_form_field_is_known():
     fields = [f for g in INPUT_GROUPS.values() for f in g]

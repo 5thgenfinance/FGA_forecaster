@@ -1,0 +1,6 @@
+# Merge these lines into your existing pytest.ini (or pyproject.toml [tool.pytest.ini_options]); do not overwrite it.
+[pytest]
+markers =
+    parity: compares against the frozen Excel workbook export
+    golden: compares against saved Python outputs (tests/golden)
+    rules: properties that must hold regardless of the exact numbers

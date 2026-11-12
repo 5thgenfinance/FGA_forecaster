@@ -42,5 +42,5 @@ class InflationScenario:
 
     def shifted(self, bps: float):
         d = bps / 1e4
-        return InflationScenario(f"{self.id}{bps:+g}bp", tuple(c + d for c in self.cpi),
+        return inflation_scenario(f"{self.id}{bps:+g}bp", tuple(c + d for c in self.cpi),
                                  tuple(c + d for c in self.cola), self.source, self.as_of)

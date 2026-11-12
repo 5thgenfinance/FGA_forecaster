@@ -1,0 +1,7 @@
+{
+  "description": "Disposable income slider -5 percent (net expenses x 0.95)",
+  "as_of": "2026-11-06",
+  "inputs": {
+    "net_expenses": 4750.0
+  }
+}
