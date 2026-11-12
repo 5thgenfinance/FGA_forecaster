@@ -36,6 +36,7 @@ from model.inputs import ProjectionInputs
 from model.loop import ForwardTables
 from model.parity import COLUMN_GROUPS
 from model.report import build_html, scenario_table
+from app.auth_gate import gate
 
 def data_dir() -> str:
     return str(TS.effective_dir())
@@ -63,6 +64,7 @@ def run_cached(inputs_json: str, as_of: str, scenarios: bool, tables_stamp: floa
 
 def main():
     st.set_page_config(page_title=PRODUCT, page_icon=Image.open(favicon_path()), layout="wide")
+    gate()
     apply_branding(sidebar_logo=False)
     apply_sidebar_theme()
     tables, _ = load_tables()
