@@ -40,6 +40,7 @@ from model.report import build_html, scenario_table
 from app.auth_gate import gate
 from app.version import version_line
 
+
 def data_dir() -> str:
     return str(TS.effective_dir())
 
